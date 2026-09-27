@@ -140,9 +140,13 @@ class ReliabilityCurve:
 
 @dataclass
 class ProbAccumulator:
-    """Streaming Brier score, log loss and reliability bins for flood-chance maps."""
+    """Streaming Brier score, log loss, reliability and threshold scores for flood-chance maps.
 
-    n_bins: int = 10
+    Probabilities are counted in 1% bins, so IoU, F1, precision and recall can be read off at any
+    threshold afterwards (e.g. one tuned on the validation event), in a single pass over the data.
+    """
+
+    n_bins: int = 100
     n: int = 0
     sq_err: float = 0.0
     nll: float = 0.0
@@ -168,7 +172,7 @@ class ProbAccumulator:
         self.sq_err += float(np.sum((p - t) ** 2))
         pc = np.clip(p, 1e-6, 1 - 1e-6)
         self.nll += float(-np.sum(np.where(t, np.log(pc), np.log(1 - pc))))
-        idx = np.minimum((p * self.n_bins).astype(int), self.n_bins - 1)
+        idx = np.minimum((p * self.n_bins + 1e-9).astype(int), self.n_bins - 1)
         self.bin_count += np.bincount(idx, minlength=self.n_bins)
         self.bin_prob += np.bincount(idx, weights=p, minlength=self.n_bins)
         self.bin_pos += np.bincount(idx, weights=t, minlength=self.n_bins).astype(np.int64)
@@ -196,11 +200,30 @@ class ProbAccumulator:
     def log_loss(self) -> float:
         return self.nll / self.n if self.n else float("nan")
 
-    def reliability(self) -> ReliabilityCurve:
+    def confusion_at(self, threshold: float = 0.5) -> Confusion:
+        """Flood-class confusion counts when pixels with chance >= threshold are called flooded."""
+        k = int(round(threshold * self.n_bins))
+        tp = int(self.bin_pos[k:].sum())
+        fp = int(self.bin_count[k:].sum()) - tp
+        fn = self.positives - tp
+        return Confusion(tp, fp, fn, self.n - tp - fp - fn)
+
+    def best_threshold(self, metric: str = "f1", lo: float = 0.02, hi: float = 0.98) -> float:
+        """Threshold (on the 1% grid) that maximises `metric` on the data seen so far."""
+        grid = np.arange(int(round(lo * self.n_bins)), int(round(hi * self.n_bins)) + 1) / self.n_bins
+        scores = [getattr(self.confusion_at(t), metric) for t in grid]
+        scores = np.nan_to_num(np.asarray(scores, dtype=float), nan=-1.0)
+        return float(grid[int(np.argmax(scores))])
+
+    def reliability(self, display_bins: int = 10) -> ReliabilityCurve:
+        group = max(1, self.n_bins // display_bins)
+        count = self.bin_count.reshape(-1, group).sum(1)
+        psum = self.bin_prob.reshape(-1, group).sum(1)
+        pos = self.bin_pos.reshape(-1, group).sum(1)
         with np.errstate(invalid="ignore", divide="ignore"):
-            mean_prob = np.where(self.bin_count > 0, self.bin_prob / np.maximum(self.bin_count, 1), np.nan)
-            observed = np.where(self.bin_count > 0, self.bin_pos / np.maximum(self.bin_count, 1), np.nan)
-        return ReliabilityCurve(np.linspace(0, 1, self.n_bins + 1), mean_prob, observed, self.bin_count.copy())
+            mean_prob = np.where(count > 0, psum / np.maximum(count, 1), np.nan)
+            observed = np.where(count > 0, pos / np.maximum(count, 1), np.nan)
+        return ReliabilityCurve(np.linspace(0, 1, len(count) + 1), mean_prob, observed, count)
 
     @property
     def ece(self) -> float:
@@ -209,9 +232,9 @@ class ProbAccumulator:
 
 def reliability_curve(prob: np.ndarray, truth: np.ndarray, valid: np.ndarray | None = None,
                       n_bins: int = 10) -> ReliabilityCurve:
-    acc = ProbAccumulator(n_bins)
+    acc = ProbAccumulator()
     acc.update(prob, truth, valid)
-    return acc.reliability()
+    return acc.reliability(n_bins)
 
 
 def expected_calibration_error(prob: np.ndarray, truth: np.ndarray, valid: np.ndarray | None = None,

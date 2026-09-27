@@ -1,0 +1,109 @@
+# Model 1, step 3: fine-tune TerraMind-small on our radar + DEM chips with TerraTorch.
+#
+#   sailab export terratorch --cube <cube> --out data/terratorch/<cube>
+#   terratorch fit -c configs/terramind_small.yaml
+#
+# Follows TerraTorch's TerraMind Sen1Floods11 example (docs/guide/terramind.md in the TerraTorch
+# repo). Check key names against your installed TerraTorch version before a long run, and paste the
+# band means/stds that `sailab export terratorch` prints (stats.json) into `means` / `stds` below.
+# On Kaggle, set data roots to /kaggle/input/<dataset>/... and precision to 16-mixed (T4 has no bf16).
+
+seed_everything: 0
+
+trainer:
+  accelerator: auto
+  strategy: auto
+  devices: auto
+  num_nodes: 1
+  precision: 16-mixed
+  logger: true
+  max_epochs: 50
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 10
+  enable_checkpointing: true
+  default_root_dir: runs/terramind_small
+  callbacks:
+    - class_path: RichProgressBar
+    - class_path: LearningRateMonitor
+      init_args:
+        logging_interval: epoch
+    - class_path: EarlyStopping
+      init_args:
+        monitor: val/loss
+        patience: 10
+
+data:
+  class_path: terratorch.datamodules.GenericMultiModalDataModule
+  init_args:
+    task: segmentation
+    batch_size: 8
+    num_workers: 2
+    modalities: [S1GRD, DEM]
+    train_data_root:
+      S1GRD: data/terratorch/demo/S1GRD
+      DEM: data/terratorch/demo/DEM
+    train_label_data_root: data/terratorch/demo/mask
+    val_data_root:
+      S1GRD: data/terratorch/demo/S1GRD
+      DEM: data/terratorch/demo/DEM
+    val_label_data_root: data/terratorch/demo/mask
+    test_data_root:
+      S1GRD: data/terratorch/demo/S1GRD
+      DEM: data/terratorch/demo/DEM
+    test_label_data_root: data/terratorch/demo/mask
+    train_split: data/terratorch/demo/splits/train.txt
+    val_split: data/terratorch/demo/splits/val.txt
+    test_split: data/terratorch/demo/splits/test.txt   # score once (team rule), via `sailab evaluate`
+    image_grep:
+      S1GRD: "*.tif"
+      DEM: "*.tif"
+    label_grep: "*.tif"
+    no_label_replace: -1
+    no_data_replace: 0
+    num_classes: 3
+    means:            # replace with stats.json from the export
+      S1GRD: [-10.5, -17.5]
+      DEM: [130.0]
+    stds:
+      S1GRD: [4.0, 4.0]
+      DEM: [20.0]
+    train_transform:
+      - class_path: albumentations.D4
+      - class_path: ToTensorV2
+
+model:
+  class_path: terratorch.tasks.SemanticSegmentationTask
+  init_args:
+    model_factory: EncoderDecoderFactory
+    model_args:
+      backbone: terramind_v1_small
+      backbone_pretrained: true
+      backbone_modalities: [S1GRD, DEM]
+      necks:
+        - name: SelectIndices
+          indices: [2, 5, 8, 11]
+        - name: ReshapeTokensToImage
+          remove_cls_token: false
+        - name: LearnedInterpolateToPyramidal
+      decoder: UNetDecoder
+      decoder_channels: [512, 256, 128, 64]
+      head_dropout: 0.1
+      num_classes: 3
+    loss: dice
+    ignore_index: -1
+    freeze_backbone: false
+    freeze_decoder: false
+    class_names: [land, normal_water, flood]
+
+optimizer:
+  class_path: torch.optim.AdamW
+  init_args:
+    lr: 2.0e-5
+    weight_decay: 0.05
+
+lr_scheduler:
+  class_path: ReduceLROnPlateau
+  init_args:
+    monitor: val/loss
+    factor: 0.5
+    patience: 5

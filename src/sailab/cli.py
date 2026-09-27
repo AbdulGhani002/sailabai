@@ -233,7 +233,14 @@ def evaluate_forecast_cmd(cube: str = "demo", split: str = "val", model_dir: Pat
                           truth: bool = False, force: bool = False, reason: str = "") -> None:
     """Model 2 and the four baselines, per lead time, next to persistence."""
     from sailab.cube import Datacube
-    from sailab.forecast.evaluate import evaluate_forecasts, guard_test, load_level_baselines, record_results
+    from sailab.forecast.evaluate import (
+        evaluate_forecasts,
+        guard_test,
+        load_level_baselines,
+        load_thresholds,
+        record_results,
+        save_thresholds,
+    )
     from sailab.paths import runs_dir
 
     folder = model_dir or runs_dir() / "model2"
@@ -252,8 +259,17 @@ def evaluate_forecast_cmd(cube: str = "demo", split: str = "val", model_dir: Pat
 
         ensemble = ForecastEnsemble.from_dir(folder, device())
     ev = evaluate_forecasts(c, split, ensemble, level, xgb_model, max_pairs=max_pairs, truth=truth, log=log)
-    record_results(ev, experiment + ("-truth" if truth else ""), split, c)
-    console.print(ev.summary().round(4).to_string())
+    thr_path = folder / "thresholds.json"
+    if split == "val" and not truth:
+        thresholds = ev.tuned_thresholds()
+        save_thresholds(thr_path, thresholds, split)
+        note = "IoU/F1 at each model's F1-best threshold per lead, tuned on this validation split"
+    else:
+        thresholds = load_thresholds(thr_path)
+        note = ("IoU/F1 at thresholds tuned on the validation event" if thresholds
+                else "IoU/F1 at 0.5 (no tuned thresholds found; run the val split first)")
+    record_results(ev, experiment + ("-truth" if truth else ""), split, c, notes=note, thresholds=thresholds)
+    console.print(ev.summary(thresholds).round(4).to_string())
 
 
 results_app = typer.Typer(help="The shared results table.", no_args_is_help=True)
@@ -404,6 +420,20 @@ def api_serve(host: str = "127.0.0.1", port: int = 8000, reload: bool = False, c
 
 
 # --------------------------------------------------------------------------- tools
+
+export_app = typer.Typer(help="Export data for other tools.", no_args_is_help=True)
+app.add_typer(export_app, name="export")
+
+
+@export_app.command("terratorch")
+def export_terratorch_cmd(cube: str = "demo", out: Path = typer.Option(None), chip: int = 224) -> None:
+    """Chips for fine-tuning TerraMind-small with TerraTorch (configs/terramind_small.yaml)."""
+    from sailab.cube import Datacube
+    from sailab.mapping.terramind import export_terratorch
+    from sailab.paths import data_dir
+
+    c = Datacube.open(cube)
+    export_terratorch(c, out or data_dir() / "terratorch" / c.root.name, chip=chip, log=log)
 
 
 @app.command("gpu-memtest")

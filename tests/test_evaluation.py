@@ -93,3 +93,29 @@ def test_results_table_requires_baseline(tmp_path):
     assert "0.600 / 0.500 / 0.200" in text
     merged = compare_to_baseline(model, base)
     assert merged["skill"].iloc[0] == pytest.approx(0.2)
+
+
+def test_threshold_scores_from_histograms():
+    rng = np.random.default_rng(3)
+    p = rng.random(20_000)
+    y = rng.random(20_000) < p * 0.6
+    acc = ProbAccumulator()
+    acc.update(p, y)
+    exact = Confusion.from_arrays(p >= 0.3, y)
+    binned = acc.confusion_at(0.3)
+    assert (binned.tp, binned.fp, binned.fn) == (exact.tp, exact.fp, exact.fn)
+    best = acc.best_threshold("f1")
+    assert 0.02 <= best <= 0.98 and acc.confusion_at(best).f1 >= acc.confusion_at(0.5).f1
+
+
+def test_event_scorer_reports_at_tuned_thresholds():
+    rng = np.random.default_rng(4)
+    prob = rng.random((50, 50)) * 0.6
+    label = np.where(rng.random((50, 50)) < prob, L.FLOOD, L.LAND).astype(np.uint8)
+    sc = EventScorer()
+    sc.add("e", prob, label, lead_days=3)
+    tuned = sc.best_thresholds()
+    assert set(tuned) == {"+3d"}
+    at_half = sc.macro().set_index(["subset", "metric"])["value"][("all", "f1")]
+    at_tuned = sc.macro(tuned).set_index(["subset", "metric"])["value"][("all", "f1")]
+    assert at_tuned >= at_half

@@ -9,6 +9,7 @@ results table next to persistence.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,13 +35,18 @@ class ForecastEvaluation:
     scorers: dict[str, EventScorer]
     pairs: pd.DataFrame
 
-    def macro(self, model: str) -> pd.DataFrame:
-        return self.scorers[model].macro()
+    def macro(self, model: str, thresholds: dict[str, float] | None = None) -> pd.DataFrame:
+        return self.scorers[model].macro(thresholds)
 
-    def summary(self, metrics: tuple[str, ...] = ("brier", "iou", "f1", "ece")) -> pd.DataFrame:
+    def tuned_thresholds(self) -> dict[str, dict[str, float]]:
+        """Per model and lead, the F1-best threshold on this split (use only on validation)."""
+        return {name: sc.best_thresholds() for name, sc in self.scorers.items()}
+
+    def summary(self, thresholds: dict[str, dict[str, float]] | None = None,
+                metrics: tuple[str, ...] = ("brier", "iou", "f1", "ece")) -> pd.DataFrame:
         rows = []
         for name, sc in self.scorers.items():
-            m = sc.macro()
+            m = sc.macro((thresholds or {}).get(name))
             m = m[(m["subset"] == "all") & m["metric"].isin(metrics)]
             for _, r in m.iterrows():
                 rows.append({"model": name, "lead": r["lead"], "metric": r["metric"], "value": r["value"]})
@@ -100,9 +106,10 @@ def evaluate_forecasts(cube: Datacube, split: str, ensemble: ForecastEnsemble | 
 
 
 def record_results(ev: ForecastEvaluation, experiment: str, split: str, cube: Datacube, notes: str = "",
-                   table: ResultsTable | None = None) -> None:
+                   thresholds: dict[str, dict[str, float]] | None = None, table: ResultsTable | None = None) -> None:
     """Write every model's macro scores to the results table next to persistence."""
     table = table or ResultsTable()
+    thresholds = thresholds or {}
     base = ev.scorers[BASELINE].macro()
     versions = DataVersions.from_dict(cube.meta.get("versions"))
     for name, sc in ev.scorers.items():
@@ -110,9 +117,20 @@ def record_results(ev: ForecastEvaluation, experiment: str, split: str, cube: Da
             table.append(sc.macro(), None, experiment=experiment, model=name, baseline="none", split=split,
                          data_versions=versions, notes=f"reference forecast (repeat the last map). {notes}".strip())
             continue
-        table.append(sc.macro(), base, experiment=experiment, model=name, baseline=BASELINE, split=split,
-                     data_versions=versions, notes=notes)
+        table.append(sc.macro(thresholds.get(name)), base, experiment=experiment, model=name, baseline=BASELINE,
+                     split=split, data_versions=versions, notes=notes)
     table.render_markdown()
+
+
+def save_thresholds(path: Path, thresholds: dict[str, dict[str, float]], split: str) -> None:
+    path.write_text(json.dumps({"tuned_on": split, "metric": "f1", "thresholds": thresholds}, indent=2),
+                    encoding="utf-8")
+
+
+def load_thresholds(path: Path) -> dict[str, dict[str, float]] | None:
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))["thresholds"]
 
 
 def guard_test(split: str, cube: Datacube, experiment: str, force: bool = False, reason: str = "") -> None:
@@ -129,4 +147,5 @@ def load_level_baselines(folder: Path) -> LevelBaselines | None:
     return LevelBaselines.load(path) if path.exists() else None
 
 
-__all__ = ["ForecastEvaluation", "evaluate_forecasts", "guard_test", "load_level_baselines", "record_results"]
+__all__ = ["ForecastEvaluation", "evaluate_forecasts", "guard_test", "load_level_baselines", "load_thresholds",
+           "record_results", "save_thresholds"]

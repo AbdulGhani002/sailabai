@@ -1,0 +1,76 @@
+# The whole platform on one machine (a laptop, or the Oracle Always Free VM):
+#   docker compose up -d --build        then open http://localhost:3000
+# Data (cubes, archive, twin outputs, model runs) lives in ./data on the host.
+name: sailabai
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: sailab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sailab}
+      POSTGRES_DB: sailab
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sailab"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+      args:
+        EXTRAS: api
+    environment:
+      SAILAB_DATABASE_URL: postgresql+psycopg://sailab:${POSTGRES_PASSWORD:-sailab}@db:5432/sailab
+      SAILAB_CUBE: ${SAILAB_CUBE:-demo}
+      SAILAB_CORS_ORIGINS: http://localhost:3000
+    volumes:
+      - ./data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  # Daily scrapers and the twin loop. Runs once a day; see docs/runbook.md.
+  worker:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+      args:
+        EXTRAS: api,ml,data,geo
+        TORCH: cpu
+    environment:
+      SAILAB_DATABASE_URL: postgresql+psycopg://sailab:${POSTGRES_PASSWORD:-sailab}@db:5432/sailab
+      SAILAB_CUBE: ${SAILAB_CUBE:-demo}
+    volumes:
+      - ./data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "while true; do
+               sailab archive run || true;
+               sailab db sync --cube $${SAILAB_CUBE:-demo} || true;
+               sleep 86400;
+             done"
+
+  web:
+    build:
+      context: ./web
+      args:
+        SAILAB_API_URL: http://api:8000
+    environment:
+      SAILAB_API_URL: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

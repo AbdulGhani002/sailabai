@@ -12,13 +12,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
 
 from sailab import labels as L
-from sailab.evaluation.metrics import Confusion, ProbAccumulator, skill_score
+from sailab.evaluation.metrics import ProbAccumulator, skill_score
 
 SUBSETS = ("all", "newly_flooded", "drained")
 
@@ -41,19 +40,27 @@ def lead_bucket(lead_days: float | None) -> str:
     return f"+{int(min(7, max(1, round(lead_days))))}d"
 
 
-@dataclass
-class _Cell:
-    conf: Confusion = field(default_factory=Confusion)
-    prob: ProbAccumulator = field(default_factory=ProbAccumulator)
+Thresholds = float | dict[str, float] | None
+
+
+def _threshold_for(thresholds: Thresholds, lead: str, default: float) -> float:
+    if thresholds is None:
+        return default
+    if isinstance(thresholds, dict):
+        return float(thresholds.get(lead, default))
+    return float(thresholds)
 
 
 class EventScorer:
-    """Accumulates scores for one model, grouped by (event, lead, subset)."""
+    """Accumulates scores for one model, grouped by (event, lead, subset).
 
-    def __init__(self, threshold: float = 0.5, n_bins: int = 10) -> None:
+    Probabilities are kept as 1% histograms, so threshold scores (IoU, F1, ...) can be reported at
+    0.5 or at thresholds tuned on the validation event, without a second pass over the data.
+    """
+
+    def __init__(self, threshold: float = 0.5) -> None:
         self.threshold = threshold
-        self.n_bins = n_bins
-        self._cells: dict[tuple[str, str, str], _Cell] = defaultdict(lambda: _Cell(prob=ProbAccumulator(n_bins)))
+        self._cells: dict[tuple[str, str, str], ProbAccumulator] = defaultdict(ProbAccumulator)
 
     def add(self, event_id: str, prob: np.ndarray, target_label: np.ndarray, *,
             prev_flood: np.ndarray | None = None, prev_known: np.ndarray | None = None,
@@ -67,47 +74,38 @@ class EventScorer:
         """
         valid = scoring_mask(target_label, normal_water, extra_valid)
         truth = target_label == L.FLOOD
-        pred = prob >= self.threshold
         lead = lead_bucket(lead_days)
-
-        cell = self._cells[(event_id, lead, "all")]
-        cell.conf = cell.conf + Confusion.from_arrays(pred, truth, valid)
-        cell.prob.update(prob, truth, valid)
+        self._cells[(event_id, lead, "all")].update(prob, truth, valid)
         for name, subset in (extra_subsets or {}).items():
             sub = valid & subset.astype(bool)
             if sub.any():
-                sc = self._cells[(event_id, lead, name)]
-                sc.conf = sc.conf + Confusion.from_arrays(pred, truth, sub)
-                sc.prob.update(prob, truth, sub)
-
+                self._cells[(event_id, lead, name)].update(prob, truth, sub)
         if prev_flood is not None:
             prev = prev_flood.astype(bool)
             base = valid if prev_known is None else valid & prev_known.astype(bool)
-            was_dry = base & ~prev
-            was_wet = base & prev
-            nf = self._cells[(event_id, lead, "newly_flooded")]
-            nf.conf = nf.conf + Confusion.from_arrays(pred, truth, was_dry)
-            nf.prob.update(prob, truth, was_dry)
-            dr = self._cells[(event_id, lead, "drained")]
-            dr.conf = dr.conf + Confusion.from_arrays(~pred, ~truth, was_wet)
-            dr.prob.update(1.0 - prob, ~truth, was_wet)
+            self._cells[(event_id, lead, "newly_flooded")].update(prob, truth, base & ~prev)
+            # drained: the event is "dry again", so score the chance of drying on pixels that were wet
+            self._cells[(event_id, lead, "drained")].update(1.0 - prob, ~truth, base & prev)
 
-    def per_event(self) -> pd.DataFrame:
+    def per_event(self, thresholds: Thresholds = None) -> pd.DataFrame:
         rows = []
-        for (event, lead, subset), cell in sorted(self._cells.items()):
+        for (event, lead, subset), acc in sorted(self._cells.items()):
+            t = _threshold_for(thresholds, lead, self.threshold)
+            if subset == "drained":
+                t = 1.0 - t  # the drained subset scores the chance of drying
+            conf = acc.confusion_at(t)
             metrics = {
-                "iou": cell.conf.iou, "f1": cell.conf.f1, "precision": cell.conf.precision,
-                "recall": cell.conf.recall, "brier": cell.prob.brier, "ece": cell.prob.ece,
-                "log_loss": cell.prob.log_loss,
+                "iou": conf.iou, "f1": conf.f1, "precision": conf.precision, "recall": conf.recall,
+                "brier": acc.brier, "ece": acc.ece, "log_loss": acc.log_loss,
             }
             for metric, value in metrics.items():
                 rows.append({"event": event, "lead": lead, "subset": subset, "metric": metric,
-                             "value": value, "n_pixels": cell.conf.n})
-        return pd.DataFrame(rows, columns=["event", "lead", "subset", "metric", "value", "n_pixels"])
+                             "value": value, "n_pixels": acc.n, "threshold": round(t, 2)})
+        return pd.DataFrame(rows, columns=["event", "lead", "subset", "metric", "value", "n_pixels", "threshold"])
 
-    def macro(self) -> pd.DataFrame:
+    def macro(self, thresholds: Thresholds = None) -> pd.DataFrame:
         """Average of per-event scores (NaN events skipped), with the number of events used."""
-        per = self.per_event()
+        per = self.per_event(thresholds)
         if per.empty:
             return per.assign(n_events=[])
         grouped = per.groupby(["lead", "subset", "metric"], sort=True)
@@ -116,13 +114,21 @@ class EventScorer:
         n_pixels = grouped["n_pixels"].sum()
         return pd.DataFrame({"value": out, "n_events": n_events, "n_pixels": n_pixels}).reset_index()
 
-    def reliability(self, lead: str | None = None, subset: str = "all") -> ProbAccumulator:
-        """Pooled reliability data (for plots) across events for one lead and subset."""
-        acc = ProbAccumulator(self.n_bins)
+    def pooled(self, lead: str | None = None, subset: str = "all") -> ProbAccumulator:
+        """All events pooled for one lead and subset (for reliability plots and threshold tuning)."""
+        acc = ProbAccumulator()
         for (_, cell_lead, cell_subset), cell in self._cells.items():
             if cell_subset == subset and (lead is None or cell_lead == lead):
-                acc = acc.merge(cell.prob)
+                acc = acc.merge(cell)
         return acc
+
+    reliability = pooled
+
+    def best_thresholds(self, metric: str = "f1") -> dict[str, float]:
+        """Per lead time, the threshold that maximises `metric` over all pixels (pooled events).
+        Tune this on the validation event only; apply it unchanged to the test event."""
+        leads = sorted({lead for (_, lead, _) in self._cells})
+        return {lead: self.pooled(lead).best_threshold(metric) for lead in leads}
 
 
 def compare_to_baseline(model: pd.DataFrame, baseline: pd.DataFrame) -> pd.DataFrame:

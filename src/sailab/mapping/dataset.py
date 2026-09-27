@@ -78,6 +78,11 @@ class MappingChips(Dataset):
         self.dry_idx = [i for i, cnd in enumerate(self.candidates) if not cnd[3]]
         if not self.candidates:
             raise ValueError("no usable chips: labels are mostly unknown")
+        self._by_scene: dict[int, list[int]] = {}
+        for i, cnd in enumerate(self.candidates):
+            self._by_scene.setdefault(cnd[0], []).append(i)
+        # half the groups start from a scene with flood in it, so floods are not rare in training
+        self._flood_scenes = sorted({self.candidates[i][0] for i in self.flood_idx})
 
     def __len__(self) -> int:
         return self.n
@@ -98,9 +103,18 @@ class MappingChips(Dataset):
         sid = self.scene_ids[si]
         return scene_inputs(self.cube, sid, self.terrain, w), self.cube.read_label(sid, w, truth=self.truth)
 
+    GROUP = 8  # consecutive samples share a scene, so a whole-scene read serves 8 chips
+
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         rng = np.random.default_rng((self.seed, self.epoch, idx))
-        pool = self.flood_idx if (self.flood_idx and rng.random() < self.flood_share) else (self.dry_idx or self.flood_idx)
+        group = np.random.default_rng((self.seed, self.epoch, idx // self.GROUP, 1))
+        if self._flood_scenes and group.random() < self.flood_share:
+            scene = self._flood_scenes[int(group.integers(len(self._flood_scenes)))]
+        else:
+            scene = self.candidates[int(group.integers(len(self.candidates)))][0]
+        same = self._by_scene[scene]
+        flood_here = [i for i in same if self.candidates[i][3]]
+        pool = flood_here if (flood_here and rng.random() < self.flood_share) else same
         si, r, c, _ = self.candidates[pool[int(rng.integers(len(pool)))]]
         x, y = self._chip(si, r, c)
         y = y.astype(np.int64)
