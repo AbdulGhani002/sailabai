@@ -201,6 +201,20 @@ def results(experiment: str | None = None) -> list[dict[str, Any]]:
     return df.replace({np.nan: None}).to_dict("records")
 
 
+@app.get("/api/reliability")
+def reliability(split: str = Query("val", pattern="^(val|test|replay|live)$"),
+                experiment: str = "model2") -> dict[str, Any]:
+    """Reliability curves (forecast chance vs how often it flooded) saved by `sailab evaluate forecast`."""
+    import json
+
+    from sailab.paths import results_dir
+
+    path = results_dir() / f"reliability_{experiment}_{split}.json"
+    if not path.exists():
+        raise HTTPException(404, f"no reliability data for {experiment} on {split}; run sailab evaluate forecast")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 # --------------------------------------------------------------------------- tiles
 
 

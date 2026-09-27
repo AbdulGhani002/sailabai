@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ReliabilityChart } from "@/components/ReliabilityChart";
 import { SkillChart, type Series } from "@/components/SkillChart";
-import { api, type ResultRow } from "@/lib/api";
+import { api, type Reliability, type ResultRow } from "@/lib/api";
 
 const LEADS = ["+1d", "+2d", "+3d", "+4d", "+5d", "+6d", "+7d"];
 // fixed categorical order: slot 1 blue, 2 orange, 3 aqua, 4 yellow
@@ -25,8 +26,11 @@ function skillClass(s: number | null | undefined) {
 export default function ResultsPage() {
   const [rows, setRows] = useState<ResultRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rel, setRel] = useState<Reliability | null>(null);
+  const [relLead, setRelLead] = useState("all");
   useEffect(() => {
     api.results().then(setRows).catch((e) => setError(String(e)));
+    api.reliability("val").then(setRel).catch(() => setRel(null));
   }, []);
 
   const forecast = useMemo(() => (rows ?? []).filter((r) => r.experiment.startsWith("model2") && !r.experiment.endsWith("-truth")), [rows]);
@@ -124,6 +128,26 @@ export default function ResultsPage() {
           </div>
 
           <h2>Are the percentages honest?</h2>
+          {rel && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div className="row" style={{ flexWrap: "wrap", gap: 12 }}>
+                <p className="ink2" style={{ margin: 0, flex: "1 1 280px" }}>
+                  When a model says 30%, it should flood about 30% of the time: points on the dashed line are honest.
+                  Validation flood ({rel.split}); bins with fewer than 50 pixels are hidden.
+                </p>
+                <div className="segmented" role="group" aria-label="Lead time">
+                  {["all", ...LEADS.filter((l) => rel.models.unet_tt?.[l])].map((l) => (
+                    <button key={l} type="button" aria-pressed={relLead === l} onClick={() => setRelLead(l)}>
+                      {l === "all" ? "All leads" : l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <ReliabilityChart series={MODELS.filter((m) => rel.models[m.key]).map((m) => ({
+                key: m.key, label: m.label, color: m.color, bins: rel.models[m.key][relLead] ?? [],
+              }))} />
+            </div>
+          )}
           <div className="card scroll-x">
             <table className="data">
               <thead><tr><th>Model</th>{leads.map((l) => <th key={l}>{l} calibration error</th>)}</tr></thead>

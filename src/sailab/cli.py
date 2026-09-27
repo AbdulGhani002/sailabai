@@ -269,6 +269,15 @@ def evaluate_forecast_cmd(cube: str = "demo", split: str = "val", model_dir: Pat
         note = ("IoU/F1 at thresholds tuned on the validation event" if thresholds
                 else "IoU/F1 at 0.5 (no tuned thresholds found; run the val split first)")
     record_results(ev, experiment + ("-truth" if truth else ""), split, c, notes=note, thresholds=thresholds)
+    import json
+    from datetime import datetime, timezone
+
+    from sailab.paths import results_dir
+
+    rel_path = results_dir() / f"reliability_{experiment}{'-truth' if truth else ''}_{split}.json"
+    rel_path.write_text(json.dumps({"experiment": experiment, "split": split, "cube": c.root.name,
+                                    "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                                    "models": ev.reliability()}, indent=1), encoding="utf-8")
     console.print(ev.summary(thresholds).round(4).to_string())
 
 

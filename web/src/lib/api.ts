@@ -120,4 +120,13 @@ export const api = {
   hydrograph: (cube: string, gauge: string, date: string) =>
     getJSON<Hydrograph>(`/api/gauges/${gauge}/hydrograph?cube=${cube}&date=${date}`),
   results: () => getJSON<ResultRow[]>(`/api/results`),
+  reliability: (split = "val") => getJSON<Reliability>(`/api/reliability?split=${split}`),
+};
+
+export type Reliability = {
+  experiment: string;
+  split: string;
+  cube: string;
+  time: string;
+  models: Record<string, Record<string, { mean_prob: number; observed: number; count: number }[]>>;
 };

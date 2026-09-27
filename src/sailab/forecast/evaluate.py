@@ -42,6 +42,20 @@ class ForecastEvaluation:
         """Per model and lead, the F1-best threshold on this split (use only on validation)."""
         return {name: sc.best_thresholds() for name, sc in self.scorers.items()}
 
+    def reliability(self, bins: int = 10) -> dict[str, dict[str, list[dict[str, float]]]]:
+        """Pooled reliability curves per model: 'all' leads and each lead bucket."""
+        out: dict[str, dict[str, list[dict[str, float]]]] = {}
+        for name, sc in self.scorers.items():
+            leads = sorted({lead for (_, lead, _) in sc._cells})
+            curves = {}
+            for lead in [None, *leads]:
+                rel = sc.pooled(lead).reliability(bins)
+                curves["all" if lead is None else lead] = [
+                    {"mean_prob": round(float(m), 4), "observed": round(float(o), 4), "count": int(n)}
+                    for m, o, n in zip(rel.mean_prob, rel.observed_freq, rel.counts, strict=True) if n > 0]
+            out[name] = curves
+        return out
+
     def summary(self, thresholds: dict[str, dict[str, float]] | None = None,
                 metrics: tuple[str, ...] = ("brier", "iou", "f1", "ece")) -> pd.DataFrame:
         rows = []
