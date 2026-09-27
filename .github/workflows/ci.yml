@@ -45,7 +45,7 @@ jobs:
           --health-cmd "pg_isready -U sailab" --health-interval 5s --health-retries 20
     env:
       SAILAB_DATABASE_URL: postgresql+psycopg://sailab:sailab@localhost:5432/sailab
-      SAILAB_DATA_DIR: ${{ runner.temp }}/data
+      SAILAB_DATA_DIR: /tmp/sailab-data
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
