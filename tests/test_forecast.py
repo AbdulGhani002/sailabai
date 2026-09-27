@@ -122,3 +122,16 @@ def test_unet_tt_shapes():
     out = m(torch.zeros(2, len(MAP_CHANNELS), 64, 96), torch.zeros(2, N_TOKENS, 9), torch.zeros(2, N_TOKENS, 9),
             torch.zeros(2, N_TOKENS), torch.tensor([1.0, 3.5]))
     assert out.shape == (2, 64, 96)
+
+
+def test_convlstm_comparison_model():
+    torch = pytest.importorskip("torch")
+    from sailab.forecast.model import build_model
+
+    m = build_model({"arch": "unet_clstm", "map_channels": len(MAP_CHANNELS), "series_features": 9,
+                     "n_tokens": N_TOKENS, "encoder": "resnet18"})
+    out = m(torch.zeros(2, len(MAP_CHANNELS), 64, 64), torch.zeros(2, N_TOKENS, 9), torch.zeros(2, N_TOKENS, 9),
+            torch.zeros(2, N_TOKENS), torch.tensor([2.0, 5.0]))
+    assert out.shape == (2, 64, 64)
+    with pytest.raises(ValueError):
+        build_model({"arch": "nope"})

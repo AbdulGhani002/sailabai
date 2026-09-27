@@ -75,7 +75,7 @@ class Twin:
             from sailab.torchutils import device
 
             dev = device()
-            if any(m2.glob("unet_tt_seed*.pt")):
+            if any(m2.glob("*_seed*.pt")):
                 self.ensemble = ForecastEnsemble.from_dir(m2, dev)
                 self.calibration = self.ensemble.calibration
                 self.log(f"Model 2: {len(self.ensemble.models)}-member ensemble from {m2}")

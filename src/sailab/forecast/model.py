@@ -10,15 +10,27 @@ import torch
 
 from sailab.forecast.calibration import Calibration
 from sailab.nn.unet import pad_to_multiple
+from sailab.nn.unet_clstm import UNetConvLSTM
 from sailab.nn.unet_tt import UNetTT
 from sailab.torchutils import autocast, load_checkpoint
+
+ARCHS = {"unet_tt": UNetTT, "unet_clstm": UNetConvLSTM}
+
+
+def build_model(config: dict[str, Any]) -> torch.nn.Module:
+    """Model 2 network from its saved config (\"arch\" picks UNet-TT or the ConvLSTM comparison)."""
+    cfg = dict(config)
+    arch = cfg.pop("arch", "unet_tt")
+    if arch not in ARCHS:
+        raise ValueError(f"unknown Model 2 architecture {arch!r}; choose from {sorted(ARCHS)}")
+    return ARCHS[arch](**cfg)
 
 
 class ForecastEnsemble:
     """Several copies of Model 2 trained with different seeds. Their disagreement is the model
     uncertainty; running them on each GloFAS member adds the weather uncertainty."""
 
-    def __init__(self, models: list[UNetTT], metas: list[dict[str, Any]], dev: torch.device,
+    def __init__(self, models: list[torch.nn.Module], metas: list[dict[str, Any]], dev: torch.device,
                  calibration: Calibration | None = None) -> None:
         if not models:
             raise ValueError("no models")
@@ -37,7 +49,7 @@ class ForecastEnsemble:
         for p in paths:
             ckpt = load_checkpoint(p, dev)
             meta = ckpt["meta"]
-            model = UNetTT(**meta["model_config"])
+            model = build_model(meta["model_config"])
             model.load_state_dict(ckpt["state_dict"])
             models.append(model.to(dev).eval())
             metas.append(meta)
@@ -48,9 +60,9 @@ class ForecastEnsemble:
 
     @classmethod
     def from_dir(cls, folder: Path, dev: torch.device) -> ForecastEnsemble:
-        paths = sorted(folder.glob("unet_tt_seed*.pt"))
+        paths = sorted(folder.glob("*_seed*.pt"))
         if not paths:
-            raise FileNotFoundError(f"no Model 2 checkpoints (unet_tt_seed*.pt) in {folder}")
+            raise FileNotFoundError(f"no Model 2 checkpoints (<arch>_seed<n>.pt) in {folder}")
         cal_path = folder / "calibration.json"
         return cls.load(paths, dev, Calibration.load(cal_path) if cal_path.exists() else None)
 

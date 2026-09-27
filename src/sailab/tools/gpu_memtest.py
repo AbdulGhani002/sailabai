@@ -14,6 +14,7 @@ import torch
 
 from sailab.forecast.inputs import MAP_CHANNELS, N_TOKENS
 from sailab.nn.unet import ResNetUNet, count_parameters
+from sailab.nn.unet_clstm import UNetConvLSTM
 from sailab.nn.unet_tt import UNetTT
 from sailab.torchutils import autocast
 
@@ -67,10 +68,19 @@ def run_memtest(chip: int = 256, batch_size: int = 8, steps: int = 5, log=print)
                      torch.rand(batch_size, device=dev) * 7,
                      torch.rand(batch_size, chip, chip, device=dev).round()),
             bce, steps, dev, log))
+    results.append(_measure(
+        "Model 2 ConvLSTM resnet18", UNetConvLSTM(len(MAP_CHANNELS), n_feat, N_TOKENS, encoder="resnet18"),
+        lambda: (torch.randn(batch_size, len(MAP_CHANNELS), chip, chip, device=dev),
+                 torch.randn(batch_size, N_TOKENS, n_feat, device=dev),
+                 torch.zeros(batch_size, N_TOKENS, n_feat, device=dev),
+                 torch.zeros(batch_size, N_TOKENS, device=dev),
+                 torch.rand(batch_size, device=dev) * 7,
+                 torch.rand(batch_size, chip, chip, device=dev).round()),
+        bce, steps, dev, log))
     try:
         from terratorch.registry import BACKBONE_REGISTRY  # noqa: F401
 
-        log("terratorch found: run notebooks/terramind_small.md steps to measure TerraMind-small")
+        log("terratorch found: measure TerraMind-small with configs/terramind_small.yaml (terratorch fit)")
     except ImportError:
         log("TerraMind-small: install the `terramind` extra to include it (or measure on Kaggle)")
     return results

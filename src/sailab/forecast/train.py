@@ -26,7 +26,7 @@ from sailab.events import assert_no_leakage
 from sailab.forecast.baselines import persistence
 from sailab.forecast.dataset import DropoutConfig, ForecastChips
 from sailab.forecast.inputs import MAP_CHANNELS, N_TOKENS, forecast_pairs, target_arrays
-from sailab.forecast.model import ForecastEnsemble
+from sailab.forecast.model import ForecastEnsemble, build_model
 from sailab.nn.unet import count_parameters
 from sailab.nn.unet_tt import UNetTT, time_encoder_parameters
 from sailab.paths import runs_dir
@@ -36,6 +36,7 @@ from sailab.torchutils import autocast, device, save_checkpoint, seed_everything
 @dataclass
 class ForecastConfig:
     cube: str = "demo"
+    arch: str = "unet_tt"          # or "unet_clstm" for the ConvLSTM comparison
     encoder: str = "resnet18"
     include_india: bool = False
     chip: int = 128
@@ -97,20 +98,20 @@ def train_forecast(cfg: ForecastConfig, log=print) -> Path:
     log(f"{len(ds.pairs)} training pairs from {ds.pairs['event_id'].nunique()} events, {len(val_pairs)} validation "
         f"pairs; points {points}; device {dev}")
 
-    model_config = {"map_channels": len(MAP_CHANNELS), "series_features": ds.series.n_features,
+    model_config = {"arch": cfg.arch, "map_channels": len(MAP_CHANNELS), "series_features": ds.series.n_features,
                     "n_tokens": N_TOKENS, "encoder": cfg.encoder}
-    model = UNetTT(**model_config).to(dev)
-    log(f"UNet-TT {cfg.encoder}: {count_parameters(model) / 1e6:.1f}M parameters "
-        f"(time transformer {time_encoder_parameters(model) / 1e6:.2f}M)")
+    model = build_model(model_config).to(dev)
+    extra = f" (time transformer {time_encoder_parameters(model) / 1e6:.2f}M)" if isinstance(model, UNetTT) else ""
+    log(f"{cfg.arch} {cfg.encoder}: {count_parameters(model) / 1e6:.1f}M parameters{extra}")
     loader = DataLoader(ds, batch_size=cfg.batch_size, shuffle=False, num_workers=cfg.num_workers, drop_last=True)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg.lr, total_steps=cfg.epochs * len(loader), pct_start=0.1)
 
     out = Path(cfg.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    path = out / f"unet_tt_seed{cfg.seed}.pt"
+    path = out / f"{cfg.arch}_seed{cfg.seed}.pt"
     best = np.inf
-    with open(out / f"unet_tt_seed{cfg.seed}_log.csv", "w", newline="", encoding="utf-8") as fh:
+    with open(out / f"{cfg.arch}_seed{cfg.seed}_log.csv", "w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
         writer.writerow(["epoch", "train_loss", "val_brier", "val_brier_persistence", "val_iou", "val_iou_persistence", "seconds"])
         for epoch in range(cfg.epochs):
@@ -130,7 +131,7 @@ def train_forecast(cfg: ForecastConfig, log=print) -> Path:
                 sched.step()
                 losses.append(float(loss.detach()))
             model.eval()
-            meta = {"kind": "model2-unet-tt", "model_config": model_config, "points": points, "channels": MAP_CHANNELS,
+            meta = {"kind": f"model2-{cfg.arch}", "model_config": model_config, "points": points, "channels": MAP_CHANNELS,
                     "config": asdict(cfg), "epoch": epoch, "cube": cube.meta.get("name", cfg.cube),
                     "train_events": sorted(ds.pairs["event_id"].unique()),
                     "val_events": sorted(val_pairs["event_id"].unique())}

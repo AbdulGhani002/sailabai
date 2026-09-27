@@ -139,18 +139,23 @@ def train_mapping_cmd(cube: str = "demo", encoder: str = "resnet34", epochs: int
 
 @train_app.command("forecast")
 def train_forecast_cmd(cube: str = "demo", seeds: list[int] = typer.Option([0], help="one model per seed"),
+                       arch: str = typer.Option("unet_tt", help="unet_tt, or unet_clstm for the ConvLSTM comparison"),
                        encoder: str = "resnet18", epochs: int = 14, batch_size: int = 12, chip: int = 128,
                        samples: int = 3000, lr: float = 3e-4, include_india: bool = False,
-                       map_dropout: float = 0.25) -> None:
+                       map_dropout: float = 0.25,
+                       out_dir: str = typer.Option(None, help="checkpoint folder (default runs/model2)")) -> None:
     """Model 2: UNet-TT. Pass several --seeds for the deep ensemble."""
     from sailab.forecast.dataset import DropoutConfig
     from sailab.forecast.train import ForecastConfig, train_forecast
 
     for seed in seeds:
         log(f"[bold]seed {seed}[/bold]")
-        train_forecast(ForecastConfig(cube=cube, encoder=encoder, epochs=epochs, batch_size=batch_size, chip=chip,
-                                      samples_per_epoch=samples, lr=lr, seed=seed, include_india=include_india,
-                                      dropout=DropoutConfig(map=map_dropout)), log=log)
+        cfg = ForecastConfig(cube=cube, arch=arch, encoder=encoder, epochs=epochs, batch_size=batch_size, chip=chip,
+                             samples_per_epoch=samples, lr=lr, seed=seed, include_india=include_india,
+                             dropout=DropoutConfig(map=map_dropout))
+        if out_dir:
+            cfg.out_dir = out_dir
+        train_forecast(cfg, log=log)
 
 
 @train_app.command("baselines")
@@ -253,7 +258,7 @@ def evaluate_forecast_cmd(cube: str = "demo", split: str = "val", model_dir: Pat
 
         xgb_model = load_xgb(folder / "xgboost.json")
     ensemble = None
-    if any(folder.glob("unet_tt_seed*.pt")):
+    if any(folder.glob("*_seed*.pt")):
         from sailab.forecast.model import ForecastEnsemble
         from sailab.torchutils import device
 
