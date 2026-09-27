@@ -34,6 +34,8 @@ def test_named_peaks_follow_the_ffc_numbers(tiny_cube):
     assert peak[(2025, "qadirabad")] == pytest.approx(1_077_951, rel=0.03)
     assert peak[(2023, "ganda_singh_wala")] == pytest.approx(278_297, rel=0.03)
     assert peak[(2016, "khanki")] == pytest.approx(418_736, rel=0.03)
+    assert peak[(2025, "panjnad")] == pytest.approx(703_698, rel=0.03)
+    assert peak[(2025, "marala")] < 1_150_000  # below Marala's historical record
 
 
 def test_india_data_stops_in_2025(tiny_cube):

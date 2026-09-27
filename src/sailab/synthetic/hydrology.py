@@ -25,14 +25,15 @@ BASE_FLOW = {
     "madhopur": (4e3, 9e3, 3e3),
     "ferozepur": (3e3, 8e3, 2e3),
 }
-# Flood wave size per unit storm intensity at each inflow, cusecs
-STORM_SCALE = {"akhnoor": 230e3, "jhelum_in": 110e3, "madhopur": 55e3, "ferozepur": 45e3}
+# Flood wave size per unit storm intensity at each inflow, cusecs. Sized so an ordinary monsoon
+# peaks at roughly 200,000-450,000 cusecs at Marala.
+STORM_SCALE = {"akhnoor": 150e3, "jhelum_in": 70e3, "madhopur": 35e3, "ferozepur": 30e3}
 
 # Routing delays in days (official FFC lags), capacity above which floodplains store water
 REACHES = {
     "akhnoor>marala": (8 / 24, None),
     "marala>khanki": (11 / 24, None),
-    "khanki>qadirabad": (6 / 24, 820e3),
+    "khanki>qadirabad": (6 / 24, None),
     "qadirabad>trimmu": (64 / 24, 640e3),
     "jhelum_in>trimmu": (1.0, None),
     "madhopur>sidhnai": (96 / 24, 140e3),
@@ -44,15 +45,27 @@ REACHES = {
 }
 
 # Storms placed for the named events: (year, gauge whose peak is matched, storm date, inflows it
-# hits hardest). The peak values themselves come from configs/events.yaml.
+# hits hardest). The peak values come from configs/events.yaml (FFC numbers) and, where the guide
+# gives none, from SYNTHETIC_PEAKS below.
 PEAK_ANCHORS = [
     (2014, "qadirabad", "09-03", ("akhnoor", "jhelum_in")),
     (2016, "khanki", "08-02", ("akhnoor",)),
     (2023, "ganda_singh_wala", "08-15", ("ferozepur",)),
     (2025, "qadirabad", "08-24", ("akhnoor",)),
-    (2025, "panjnad", "08-24", ("madhopur", "ferozepur")),
+    (2025, "sidhnai", "08-24", ("madhopur",)),
+    (2025, "ganda_singh_wala", "08-23", ("ferozepur",)),
     (2026, "marala", "08-08", ("akhnoor",)),
 ]
+# Invented for the demo only (not reported numbers): the Ravi and Sutlej were high in 2025, enough
+# for the planned breach at Sidhnai, so the synthetic 2025 reproduces that.
+SYNTHETIC_PEAKS = {2025: {"sidhnai": 160_000.0, "ganda_singh_wala": 300_000.0}}
+# In 2025 the planned breaches at Qadirabad and Rewaz bridge moved water out of the river, so far
+# more of the Qadirabad peak was lost to the floodplain before Trimmu, and more again below it:
+# (capacity, share of the excess passed on).
+YEAR_REACH_OVERRIDES = {2025: {"qadirabad>trimmu": (600e3, 0.2), "trimmu>panjnad": (520e3, 0.25)}}
+# Hill torrents (nullahs Aik, Palkhu, Deg) join the Chenab between Marala and Khanki; in 2025 Sialkot
+# got 363 mm in a day, so they carried far more than usual (multiplier on their normal share).
+YEAR_NULLAH_AT_KHANKI = {2025: 5.0}
 
 MODEL_POINTS = ["marala", "qadirabad", "trimmu", "sidhnai", "islam", "panjnad"]
 INDIA_POINTS = ["akhnoor", "madhopur", "ferozepur"]
@@ -60,8 +73,8 @@ PK_GAUGES = ["marala", "khanki", "qadirabad", "trimmu", "sidhnai", "ganda_singh_
 
 BREACH_SITES = [
     # name, river, lat, lon, controlling gauge, flow that opens it (cusecs)
-    {"id": "rewaz_bridge", "river": "chenab", "lat": 31.00, "lon": 72.05, "gauge": "trimmu", "opens_at": 560e3},
-    {"id": "sidhnai", "river": "ravi", "lat": 30.555, "lon": 72.10, "gauge": "sidhnai", "opens_at": 135e3},
+    {"id": "rewaz_bridge", "river": "chenab", "lat": 31.00, "lon": 72.05, "gauge": "trimmu", "opens_at": 600e3},
+    {"id": "sidhnai", "river": "ravi", "lat": 30.555, "lon": 72.10, "gauge": "sidhnai", "opens_at": 140e3},
 ]
 
 
@@ -132,21 +145,30 @@ def route(q: np.ndarray, lag_days: float, capacity: float | None = None, spill: 
     return shaved
 
 
-def _network(inflow: dict[str, np.ndarray], nullah: np.ndarray, slowdown: float) -> dict[str, np.ndarray]:
-    def r(name: str, q: np.ndarray, slow: bool = True, cap_scale: float = 1.0) -> np.ndarray:
+def _network(inflow: dict[str, np.ndarray], nullah: np.ndarray, slowdown: float,
+             overrides: dict[str, tuple[float, float]] | None = None, nullah_at_khanki: float = 0.25,
+             chenab_loss: float = 0.0) -> dict[str, np.ndarray]:
+    """Route the inflows down the network. `chenab_loss` is the share of the Chenab lost to breaches
+    and floodplain storage between Trimmu and Panjnad."""
+    overrides = overrides or {}
+
+    def r(name: str, q: np.ndarray, slow: bool = True) -> np.ndarray:
         lag, cap = REACHES[name]
-        return route(q, lag * (slowdown if slow else 1.0), None if cap is None else cap * cap_scale)
+        spill = 0.5
+        if name in overrides:
+            cap, spill = overrides[name]
+        return route(q, lag * (slowdown if slow else 1.0), cap, spill)
 
     q: dict[str, np.ndarray] = dict(inflow)
     q["marala"] = r("akhnoor>marala", q["akhnoor"], slow=False) * 1.04 + nullah
-    q["khanki"] = r("marala>khanki", q["marala"], slow=False) + 0.25 * nullah
+    q["khanki"] = r("marala>khanki", q["marala"], slow=False) + nullah_at_khanki * nullah
     q["qadirabad"] = r("khanki>qadirabad", q["khanki"], slow=False)
     q["chenab_at_trimmu"] = r("qadirabad>trimmu", q["qadirabad"])
     q["trimmu"] = q["chenab_at_trimmu"] + r("jhelum_in>trimmu", q["jhelum_in"], slow=False)
     q["sidhnai"] = 0.8 * r("madhopur>sidhnai", q["madhopur"]) + 0.15 * nullah + 2e3
     q["ganda_singh_wala"] = r("ferozepur>ganda_singh_wala", q["ferozepur"], slow=False)
     q["islam"] = 0.8 * r("ganda_singh_wala>islam", q["ganda_singh_wala"])
-    chenab = r("trimmu>panjnad", q["trimmu"])
+    chenab = r("trimmu>panjnad", q["trimmu"]) * (1.0 - chenab_loss)
     ravi = r("sidhnai>panjnad", q["sidhnai"])
     q["chenab_below_ravi"] = route(q["trimmu"], 0.6 * REACHES["trimmu>panjnad"][0] * slowdown) + route(q["sidhnai"], 0.5)
     q["panjnad"] = 0.95 * (chenab + ravi + r("islam>panjnad", q["islam"]))
@@ -166,8 +188,9 @@ def simulate_season(year: int, rng: np.random.Generator, targets: dict[str, floa
     for _ in range(int(rng.poisson(3.5)) + 2):
         day = int(rng.integers(date(year, 7, 1).timetuple().tm_yday, date(year, 9, 20).timetuple().tm_yday)) - doy0
         w = rng.dirichlet([2.0, 1.2, 1.0, 0.8])
-        storms.append(Storm(day, float(rng.lognormal(-0.2, 0.45)), dict(zip(BASE_FLOW, w * 2.2, strict=True)),
+        storms.append(Storm(day, float(rng.lognormal(-0.3, 0.4)), dict(zip(BASE_FLOW, w * 2.2, strict=True)),
                             float(rng.uniform(1.4, 3.0)), float(rng.uniform(0.0, 1.0))))
+    targets = {**SYNTHETIC_PEAKS.get(year, {}), **(targets or {})}
 
     anchors = [a for a in PEAK_ANCHORS if a[0] == year and targets and a[1] in targets]
     anchor_storms: dict[str, Storm] = {}
@@ -177,6 +200,8 @@ def simulate_season(year: int, rng: np.random.Generator, targets: dict[str, floa
         storm = Storm(day, 1.0, weights, 2.2, 0.8)
         storms.append(storm)
         anchor_storms[gauge] = storm
+
+    loss = [0.0]
 
     def run() -> tuple[dict[str, np.ndarray], np.ndarray, np.ndarray]:
         inflow = {s: _base(n, dates, BASE_FLOW[s], factor) for s in BASE_FLOW}
@@ -189,7 +214,8 @@ def simulate_season(year: int, rng: np.random.Generator, targets: dict[str, floa
             nullah += _wave(n, st.day - 0.5, 60e3 * st.intensity * st.weights["akhnoor"] / 2.2, 1.2)
             rain_u += _wave(n, st.day - 1.2, 28.0 * st.intensity, 1.0, k=2.0)
             rain_l += _wave(n, st.day - 0.8, 22.0 * st.intensity * st.local, 0.9, k=2.0)
-        return _network(inflow, nullah, slowdown), rain_u, rain_l
+        return (_network(inflow, nullah, slowdown, YEAR_REACH_OVERRIDES.get(year),
+                         0.25 * YEAR_NULLAH_AT_KHANKI.get(year, 1.0), loss[0]), rain_u, rain_l)
 
     rng_rain_u = rng.gamma(0.35, 3.0, n) * ((dates.month >= 6) & (dates.month <= 9))
     rng_rain_l = rng.gamma(0.25, 3.5, n) * ((dates.month >= 7) & (dates.month <= 9))
@@ -197,19 +223,37 @@ def simulate_season(year: int, rng: np.random.Generator, targets: dict[str, floa
     rng_rain_l[convective] += rng.uniform(25, 85, convective.sum())
 
     q, rain_u, rain_l = run()
-    for _ in range(6):  # scale anchor storms until the routed peaks match the FFC numbers
+    anchor_ids = {id(st) for st in anchor_storms.values()}
+    for _ in range(20):
+        # scale each anchor storm until its routed peak matches the target, and keep the season's
+        # other storms below it, so the reported number is also the season's peak
         changed = False
         for gauge, storm in anchor_storms.items():
+            series = q[gauge]
             day = int(storm.day)
             window = slice(max(0, day - 2), min(n, day + 16))
-            peak = float(q[gauge][window].max())
-            want = targets[gauge]  # type: ignore[index]
+            peak = float(series[window].max())
+            want = targets[gauge]
             if abs(peak - want) / want > 0.01:
-                storm.intensity *= float(np.clip(want / max(peak, 1.0), 0.3, 3.0)) ** 0.9
+                storm.intensity *= float(np.clip(want / max(peak, 1.0), 0.3, 3.0))
+                changed = True
+            outside = np.concatenate([series[:window.start], series[window.stop:]])
+            if outside.size and outside.max() > 0.97 * want:
+                for st in storms:
+                    if id(st) not in anchor_ids:
+                        st.intensity *= 0.85
                 changed = True
         if not changed:
             break
         q, rain_u, rain_l = run()
+
+    # Panjnad has no storm of its own: match its reported peak through losses below Trimmu
+    if "panjnad" in targets and "panjnad" not in anchor_storms and q["panjnad"].max() > targets["panjnad"]:
+        lo, hi = 0.0, 0.6
+        for _ in range(25):
+            loss[0] = (lo + hi) / 2
+            q, rain_u, rain_l = run()
+            lo, hi = (loss[0], hi) if q["panjnad"].max() > targets["panjnad"] else (lo, loss[0])
 
     frame = pd.DataFrame(q, index=dates)
     breaches = []
