@@ -25,7 +25,7 @@ HORIZON_DAYS = 7
 N_TOKENS = HISTORY_DAYS + HORIZON_DAYS
 MAX_STATE_AGE_DAYS = 30.0
 MAP_CHANNELS = ["flood_state", "state_known", "state_age", "normal_water", "hand", "dem", "slope", "breach",
-                "map_hidden"]
+                "map_hidden", "q_ref_now", "q_ref_target", "q_ref_peak", "flow_hidden"]
 WEATHER_FEATURES = ["rain_upper", "rain_local", "soil_moisture"]
 STANDARD_HORIZONS = (1, 2, 3, 5, 7)
 
@@ -110,6 +110,40 @@ class SeriesBank:
         is_fc[HISTORY_DAYS:] = 1.0
         return np.nan_to_num(values, nan=0.0), missing, is_fc
 
+    def flow_features(self, day: pd.Timestamp, lead_days: float, hide_forecast: bool = False,
+                      hide_points: tuple[int, ...] = ()) -> FlowFeatures:
+        """Per point: today's observed flow, the GloFAS ensemble-mean flow at the lead time and its
+        peak up to then (normalised). The map part turns these into per-pixel channels."""
+        i = self.day_index(day)
+        now = self.q[i].copy()
+        for back in (1, 2):  # a missing 6 am reading: fall back to the last two days
+            gap = np.isnan(now)
+            now[gap] = self.q[i - back][gap]
+        now[list(hide_points)] = np.nan
+        with np.errstate(all="ignore"):
+            mean_fc = np.nanmean(self.gl[i], axis=-1)  # (points, leads)
+        lead = int(np.clip(round(lead_days), 1, mean_fc.shape[1]))
+        target = norm_flow(mean_fc[:, lead - 1])
+        target[np.isnan(mean_fc[:, lead - 1])] = np.nan
+        with np.errstate(all="ignore"):
+            peak_q = np.nanmax(mean_fc[:, :lead], axis=1)
+        peak = norm_flow(peak_q)
+        peak[np.isnan(peak_q)] = np.nan
+        hidden = hide_forecast or bool(np.isnan(target).all())
+        if hidden:
+            target[:] = np.nan
+            peak[:] = np.nan
+        return FlowFeatures(np.nan_to_num(now, nan=0.0), np.nan_to_num(target, nan=0.0),
+                            np.nan_to_num(peak, nan=0.0), hidden)
+
+
+@dataclass
+class FlowFeatures:
+    now: np.ndarray       # (points,) normalised observed flow today
+    target: np.ndarray    # (points,) normalised forecast flow at the lead time
+    peak: np.ndarray      # (points,) normalised forecast peak up to the lead time
+    hidden: bool          # forecasts missing (or hidden by modality dropout)
+
 
 # --------------------------------------------------------------------------- flood state from past passes
 
@@ -184,7 +218,7 @@ class StateComposer:
 
 
 class StaticMaps:
-    def __init__(self, cube: Datacube) -> None:
+    def __init__(self, cube: Datacube, points: list[str] | None = None) -> None:
         dem = cube.static("dem").astype(np.float32)
         ok = np.isfinite(dem)
         self.dem_stats = (float(dem[ok].mean()), float(dem[ok].std()))
@@ -198,6 +232,11 @@ class StaticMaps:
         ])
         self.breaches = cube.geojson("breaches")["features"]
         self.grid = cube.grid
+        self.ref_point = None
+        if points:
+            from sailab.forecast.baselines import reference_points  # avoids a circular import
+
+            self.ref_point = reference_points(cube, points)
 
     def breach_channel(self, t: pd.Timestamp, radius_km: float = 12.0,
                        window: tuple[slice, slice] | None = None) -> np.ndarray:
@@ -217,8 +256,11 @@ class StaticMaps:
         return out
 
     def map_stack(self, state: FloodState | None, t: pd.Timestamp, hide_map: bool = False,
-                  window: tuple[slice, slice] | None = None) -> np.ndarray:
-        """Model 2 map channels (9, H, W) at issue time t, for the whole grid or one (rows, cols) window."""
+                  window: tuple[slice, slice] | None = None, flows: FlowFeatures | None = None) -> np.ndarray:
+        """Model 2 map channels (13, H, W) at issue time t, for the whole grid or one (rows, cols) window.
+
+        The last four channels carry river flow to each pixel: the flow of the gauge that controls
+        it (learned from the training events), today and forecast for the lead time."""
         rs, cs = window or (slice(0, self.grid.height), slice(0, self.grid.width))
         h, w = rs.stop - rs.start, cs.stop - cs.start
         if state is None or hide_map:
@@ -232,8 +274,15 @@ class StaticMaps:
             age = np.where(known > 0, now - state.obs_time[rs, cs], MAX_STATE_AGE_DAYS)
             age = (np.minimum(age, MAX_STATE_AGE_DAYS) / 7.0).astype(np.float32)
         hidden = np.full((h, w), 1.0 if (hide_map or state is None) else 0.0, np.float32)
+        if flows is not None and self.ref_point is not None:
+            ref = self.ref_point[rs, cs]
+            flow = np.stack([flows.now[ref], flows.target[ref], flows.peak[ref],
+                             np.full((h, w), 1.0 if flows.hidden else 0.0)]).astype(np.float32)
+        else:
+            flow = np.zeros((4, h, w), np.float32)
+            flow[3] = 1.0
         return np.concatenate([np.stack([flood, known, age]), self.channels[:, rs, cs],
-                               self.breach_channel(t, window=(rs, cs))[None], hidden[None]]).astype(np.float32)
+                               self.breach_channel(t, window=(rs, cs))[None], hidden[None], flow]).astype(np.float32)
 
 
 def target_arrays(label: np.ndarray, static: StaticMaps) -> tuple[np.ndarray, np.ndarray]:

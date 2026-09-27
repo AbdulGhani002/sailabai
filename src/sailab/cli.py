@@ -292,20 +292,22 @@ app.add_typer(twin_app, name="twin")
 
 
 @twin_app.command("run")
-def twin_run(day: str, cube: str = "demo", members: int = 11) -> None:
+def twin_run(day: str, cube: str = "demo", members: int = 11,
+             model2_dir: str = typer.Option(None, help="Model 2 checkpoints (default runs/model2)")) -> None:
     """One daily update: map new passes, forecast, write layers and risk."""
     from sailab.twin.loop import Twin, TwinConfig
 
-    s = Twin(TwinConfig(cube=cube, members=members), log=log).step(day)
+    s = Twin(TwinConfig(cube=cube, members=members, model2_dir=model2_dir), log=log).step(day)
     log(f"{s['run_id']}: {s['current_flooded_km2']} km2 flooded now; model {s['model']}")
 
 
 @twin_app.command("replay")
-def twin_replay(start: str, end: str, cube: str = "demo", members: int = 11) -> None:
+def twin_replay(start: str, end: str, cube: str = "demo", members: int = 11,
+                model2_dir: str = typer.Option(None, help="Model 2 checkpoints (default runs/model2)")) -> None:
     """Replay a period day by day as if live."""
     from sailab.twin.loop import Twin, TwinConfig
 
-    Twin(TwinConfig(cube=cube, members=members), log=log).replay(start, end)
+    Twin(TwinConfig(cube=cube, members=members, model2_dir=model2_dir), log=log).replay(start, end)
 
 
 # --------------------------------------------------------------------------- real data

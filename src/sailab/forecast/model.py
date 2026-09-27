@@ -56,12 +56,18 @@ class ForecastEnsemble:
 
     @torch.no_grad()
     def logits(self, maps: np.ndarray, values: np.ndarray, missing: np.ndarray, is_forecast: np.ndarray,
-               leads: list[float], amp: bool = True, batch: int = 8) -> np.ndarray:
-        """Raw logits (models, leads, H, W) for one issue time. `values`/`missing` may be (T, F) for one
-        token set or (len(leads), T, F) for a different set per lead (e.g. GloFAS members)."""
-        m = torch.from_numpy(maps).to(self.dev)
-        m, (h, w) = pad_to_multiple(m)
+               leads: list[float], amp: bool = True, batch: int = 8,
+               map_index: list[int] | None = None) -> np.ndarray:
+        """Raw logits (models, items, H, W) for one issue time.
+
+        `maps` is (C, H, W), shared by every item, or (M, C, H, W) with `map_index` saying which map
+        each item uses (maps differ by lead time through the river-flow channels). `values`/`missing`
+        are (T, F) for one token set or (items, T, F), e.g. one per GloFAS member and lead."""
         n = len(leads)
+        m = torch.from_numpy(maps if maps.ndim == 4 else maps[None]).to(self.dev)
+        m, (h, w) = pad_to_multiple(m)
+        idx = torch.as_tensor(map_index if map_index is not None else
+                              ([0] * n if maps.ndim == 3 else list(range(n))), device=self.dev)
         v = torch.from_numpy(values).to(self.dev)
         mi = torch.from_numpy(missing).to(self.dev)
         if v.dim() == 2:
@@ -73,13 +79,14 @@ class ForecastEnsemble:
             for s in range(0, n, batch):
                 e = min(n, s + batch)
                 with autocast(self.dev, amp):
-                    lg = model(m.expand(e - s, -1, -1, -1), v[s:e], mi[s:e], f[s:e], ld[s:e])
+                    lg = model(m[idx[s:e]], v[s:e], mi[s:e], f[s:e], ld[s:e])
                 out[k, s:e] = lg.float()[:, :h, :w].cpu().numpy()
         return out
 
     def predict(self, maps: np.ndarray, values: np.ndarray, missing: np.ndarray, is_forecast: np.ndarray,
                 leads: list[float], calibrated: bool = True) -> dict[str, np.ndarray]:
-        """Flood chance per lead: calibrated mean over the ensemble, plus the spread between models."""
+        """Flood chance per lead: calibrated mean over the ensemble, plus the spread between models.
+        `maps` is (C, H, W) or one map per lead (L, C, H, W)."""
         lg = self.logits(maps, values, missing, is_forecast, leads)
         probs = 1.0 / (1.0 + np.exp(-lg))
         mean = probs.mean(axis=0)

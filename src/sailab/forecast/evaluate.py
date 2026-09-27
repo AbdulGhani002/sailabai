@@ -62,7 +62,7 @@ def evaluate_forecasts(cube: Datacube, split: str, ensemble: ForecastEnsemble | 
     points = ensemble.points if ensemble else (level.points if level else [])
     series = SeriesBank(cube, points)
     composer = StateComposer(cube)
-    static = StaticMaps(cube)
+    static = StaticMaps(cube, points)
     pairs = forecast_pairs(cube, [split])
     pairs = pairs[[composer.latest_index(t) is not None for t in pairs["issue"]]].reset_index(drop=True)
     if max_pairs and len(pairs) > max_pairs:
@@ -78,7 +78,7 @@ def evaluate_forecasts(cube: Datacube, split: str, ensemble: ForecastEnsemble | 
         t, lead = pr["issue"], float(pr["lead_days"])
         state = composer.state(t)
         label = cube.read_label(pr["target_scene"], truth=truth)
-        maps = static.map_stack(state, t)
+        maps = static.map_stack(state, t, flows=series.flow_features(t, lead) if points else None)
         breach = maps[7] > 0
         common = {"prev_flood": state.flooded if state else None, "prev_known": state.known if state else None,
                   "normal_water": static.normal_water, "extra_valid": static.aoi, "lead_days": lead,

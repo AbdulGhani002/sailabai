@@ -47,7 +47,7 @@ class ForecastChips(Dataset):
         self.points = points
         self.india_idx = [points.index(p) for p in india_points if p in points]
         self.composer = StateComposer(cube)
-        self.static = StaticMaps(cube)
+        self.static = StaticMaps(cube, points)
         self.chip = chip
         self.n = samples_per_epoch
         self.dropout = dropout or DropoutConfig()
@@ -95,24 +95,26 @@ class ForecastChips(Dataset):
 
         p = len(self.points)
         drop = np.zeros_like(missing)
-        for j in range(p):
-            if rng.random() < self.dropout.point:
-                drop[:HISTORY_DAYS, j] = 1
+        hidden_points = [j for j in range(p) if rng.random() < self.dropout.point]
+        drop[:HISTORY_DAYS, hidden_points] = 1
         if self.india_idx and rng.random() < self.dropout.india:
             drop[:HISTORY_DAYS, self.india_idx] = 1
+            hidden_points += self.india_idx
         if rng.random() < self.dropout.rain_obs:
             drop[:HISTORY_DAYS, p:] = 1
-        if rng.random() < self.dropout.forecast:
+        hide_forecast = rng.random() < self.dropout.forecast
+        if hide_forecast:
             drop[HISTORY_DAYS:, :] = 1
         missing = np.maximum(missing, drop)
         values = values * (1 - missing)
+        flows = self.series.flow_features(t, float(pair["lead_days"]), hide_forecast, tuple(hidden_points))
 
         target, mask = self._target(pair["target_scene"])
         prev = state.flooded if state is not None else np.zeros_like(mask)
         interest = mask & ((target > 0) | prev)
         r, c = self._crop_origin(rng, interest, mask)
         s = np.s_[r:r + self.chip, c:c + self.chip]
-        maps_c = self.static.map_stack(state, t, hide_map=hide_map, window=s)
+        maps_c = self.static.map_stack(state, t, hide_map=hide_map, window=s, flows=flows)
         target_c, mask_c = target[s], mask[s]
         prev_c = prev[s].astype(np.float32)
         if self.augment:

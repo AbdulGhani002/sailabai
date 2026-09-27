@@ -26,7 +26,7 @@ export type Meta = {
   credits: Credit[];
 };
 
-export type Range = { expected: number; low: number; high: number };
+export type Range = { expected: number; low: number; high: number; likely?: number };
 
 export type PlaceRisk = { name: string; lon: number; lat: number; people: Range; max_prob: number };
 
@@ -53,6 +53,7 @@ export type RunSummary = {
   latest_pass: { scene_id: string; time: string; mapped_by: string } | null;
   new_passes: string[];
   current_flooded_km2: number;
+  current_exposure?: { totals: { population: Range; buildings: Range; road_km: Range; area_km2: Range }; places: PlaceRisk[] };
   horizons: Horizon[];
   tiles: { current: string };
 };

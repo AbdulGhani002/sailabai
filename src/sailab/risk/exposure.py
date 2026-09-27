@@ -20,12 +20,14 @@ def total_with_range(prob: np.ndarray, weight: np.ndarray, members: np.ndarray |
                      measure: str, valid: np.ndarray | None = None) -> dict[str, float]:
     w = np.where(valid, weight, 0.0) if valid is not None else weight
     expected = float(np.nansum(prob * w))
+    likely = float(np.nansum(np.where(prob >= 0.5, w, 0.0)))  # in pixels more likely flooded than not
     lo, hi = calibration.total_range(measure, expected)
     if members is not None and len(members) > 1:
         per_member = np.nansum(members * w[None], axis=(1, 2))
         lo = min(lo, float(np.percentile(per_member, 5)))
         hi = max(hi, float(np.percentile(per_member, 95)))
-    return {"expected": round(expected, 1), "low": round(max(0.0, lo), 1), "high": round(hi, 1)}
+    return {"expected": round(expected, 1), "low": round(max(0.0, lo), 1), "high": round(hi, 1),
+            "likely": round(likely, 1)}
 
 
 def _line_pixels(coords: list[list[float]], grid: GridSpec, step_m: float) -> tuple[np.ndarray, np.ndarray]:

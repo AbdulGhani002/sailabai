@@ -205,8 +205,8 @@ input[type="range"] { width: 100%; accent-color: var(--series-1); }
 .chart-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); }
 .chart-legend .key { display: inline-flex; align-items: center; gap: 6px; }
 .chart-legend .line { width: 18px; height: 0; border-top: 2px solid var(--series-1); }
-.chart-legend .line.dash { border-top-style: dashed; }
-.chart-legend .line.dot { border-top: 2px dotted var(--ink-2); }
+.chart-legend .line.dashed { border-top-style: dashed; }
+.chart-legend .line.dotted { border-top: 2px dotted var(--ink-2); }
 .chart-legend .band { width: 14px; height: 10px; background: var(--band-soft); border: 1px solid var(--band-strong); }
 .chart-wrap { position: relative; }
 .tooltip {

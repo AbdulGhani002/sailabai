@@ -92,6 +92,21 @@ def assign_reference_points(history: PixelHistory, min_obs: int = 8) -> np.ndarr
     return best
 
 
+def reference_points(cube: Datacube, points: list[str], splits: tuple[str, ...] = ("train",)) -> np.ndarray:
+    """Index (into `points`) of the gauge that controls each pixel, fitted on training events only.
+    Cached in the cube as static/ref_point.tif, tagged with the point list it refers to."""
+    from sailab.io import read_tags
+
+    path = cube.static_path("ref_point")
+    if path.exists() and read_tags(path).get("points") == ",".join(points):
+        return cube.static("ref_point").astype(np.int64)
+    coarsen = max(1, int(np.ceil(np.sqrt(cube.grid.width * cube.grid.height / 2_000_000))))
+    hist = pixel_history(cube, list(splits), points, coarsen)
+    ref = _upsample(assign_reference_points(hist), coarsen, cube.grid.shape).astype(np.uint8)
+    cube.write_static("ref_point", ref, dtype="uint8", points=",".join(points), fitted_on=",".join(splits))
+    return ref.astype(np.int64)
+
+
 def _upsample(a: np.ndarray, factor: int, shape: tuple[int, int]) -> np.ndarray:
     if factor == 1:
         return a
@@ -178,9 +193,15 @@ class RiverThreshold:
             n_above = k.sum(0) - n_below
             f_above = f.sum(0) - f_below
             a = self.smoothing
+            base = float(f.sum() / max(k.sum(), 1.0))
             self.threshold[sel] = thr
             self.p_above[sel] = (f_above + a * 0.5) / (n_above + a)
             self.p_below[sel] = (f_below + a * 0.02) / (n_below + a)
+            # never observed (GFM excludes sand and towns): no threshold to learn, use the base rate
+            unseen = np.flatnonzero(sel)[k.sum(0) == 0]
+            self.threshold.flat[unseen] = np.inf
+            self.p_above.flat[unseen] = base
+            self.p_below.flat[unseen] = base
         self.ref = ref
         return self
 

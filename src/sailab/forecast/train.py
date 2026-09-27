@@ -70,7 +70,7 @@ def validate(ensemble: ForecastEnsemble, ds_val: ForecastChips, pairs, max_pairs
     for _, pr in pairs.iterrows():
         t = pr["issue"]
         state = ds_val.composer.state(t)
-        maps = ds_val.static.map_stack(state, t)
+        maps = ds_val.static.map_stack(state, t, flows=ds_val.series.flow_features(t, float(pr["lead_days"])))
         values, missing, is_fc = ds_val.series.tokens(t)
         prob = ensemble.predict(maps, values, missing, is_fc, [float(pr["lead_days"])], calibrated=False)["prob"][0]
         target, mask = target_arrays(ds_val.cube.read_label(pr["target_scene"]), ds_val.static)

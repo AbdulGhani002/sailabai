@@ -1,6 +1,17 @@
 "use client";
 
-import { type GeoJSONSource, Map as MLMap, type MapLayerMouseEvent, NavigationControl, type RasterTileSource, ScaleControl } from "maplibre-gl";
+import {
+  type GeoJSONSource,
+  Map as MLMap,
+  type MapLayerMouseEvent,
+  NavigationControl,
+  type RasterTileSource,
+  ScaleControl,
+  setWorkerUrl,
+} from "maplibre-gl";
+
+// served from public/ (see scripts/copy-maplibre-worker.mjs)
+if (typeof window !== "undefined") setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 import { useEffect, useRef } from "react";
 import type { Meta } from "@/lib/api";
 import type { Theme } from "@/lib/theme";
@@ -60,14 +71,24 @@ export function FloodMap({ meta, tileUrl, theme, selectedGauge, onGaugeSelect }:
     map.addControl(new NavigationControl({ showCompass: false }), "top-left");
     map.addControl(new ScaleControl({ unit: "metric" }), "bottom-right");
     map.on("style.load", () => addOverlays(map));
+    // the container may still be sizing when the map is created: fit the study area once loaded
+    map.once("load", () => {
+      map.resize();
+      map.fitBounds([[w, s], [e, n]], { padding: 24, animate: false });
+    });
     map.on("click", "gauges", (ev: MapLayerMouseEvent) => {
       const id = ev.features?.[0]?.properties?.id;
       if (typeof id === "string") selectRef.current(id);
     });
     map.on("mouseenter", "gauges", () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", "gauges", () => (map.getCanvas().style.cursor = ""));
+    // the panel below the map loads later and shrinks it; keep the canvas matched to its container
+    const resizer = new ResizeObserver(() => map.resize());
+    resizer.observe(container.current);
     mapRef.current = map;
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __sailabMap?: MLMap }).__sailabMap = map;
     return () => {
+      resizer.disconnect();
       map.remove();
       mapRef.current = null;
     };
@@ -133,10 +154,13 @@ export function FloodMap({ meta, tileUrl, theme, selectedGauge, onGaugeSelect }:
 
   // flood layer: swap tiles when the run, horizon, view or theme changes
   useEffect(() => {
+    // isStyleLoaded() is false while tiles load, so check for our source instead; if it does not
+    // exist yet, addOverlays() picks up the current tile URL when the style finishes loading.
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded() || !map.getSource("flood")) return;
+    const source = map?.getSource("flood") as RasterTileSource | undefined;
+    if (!map || !source) return;
     if (tileUrl) {
-      (map.getSource("flood") as RasterTileSource).setTiles([absolute(tileUrl)]);
+      source.setTiles([absolute(tileUrl)]);
       map.setLayoutProperty("flood", "visibility", "visible");
     } else {
       map.setLayoutProperty("flood", "visibility", "none");

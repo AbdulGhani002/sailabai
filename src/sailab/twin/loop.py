@@ -52,7 +52,6 @@ class Twin:
         self.cfg = cfg
         self.log = log
         self.cube = Datacube.open(cfg.cube)
-        self.static = StaticMaps(self.cube)
         self.composer = StateComposer(self.cube)
         self.out = Path(cfg.out_dir) if cfg.out_dir else twin_dir() / self.cube.root.name
         self.calibration = Calibration()
@@ -62,6 +61,7 @@ class Twin:
         self._load_models()
         points = self.ensemble.points if self.ensemble else (self.level.points if self.level else [])
         self.series = SeriesBank(self.cube, points) if points else None
+        self.static = StaticMaps(self.cube, points or None)
         self.mapped: dict[str, str] = {}
 
     # ------------------------------------------------------------------ models
@@ -126,7 +126,6 @@ class Twin:
         t = issue_time(day)
         new_passes = self._map_new_passes(t)
         state = self.composer.state(t)
-        maps = self.static.map_stack(state, t)
         leads: list[tuple[str, float]] = [(f"d{h}", float(h)) for h in self.cfg.horizons]
         nxt = self._next_pass(t)
         if nxt is not None:
@@ -140,7 +139,7 @@ class Twin:
         write_raster(folder / "current.tif", self._current_label(state), grid, dtype="uint8", nodata=L.IGNORE, cog=True,
                      tags={"layer": "current flood map", "issue_time": t.isoformat()})
 
-        probs, members, model_name = self._forecast(maps, t, [lv for _, lv in leads])
+        probs, members, model_name = self._forecast(state, t, [lv for _, lv in leads])
         layers = {"population": self.cube.static("population"), "buildings": self.cube.static("buildings"),
                   "road_km": self.cube.static("road_km")}
         roads, places = self.cube.geojson("roads"), self.cube.geojson("places")
@@ -216,19 +215,22 @@ class Twin:
         out[self.static.normal_water] = L.NORMAL_WATER
         return out
 
-    def _forecast(self, maps: np.ndarray, t: pd.Timestamp, leads: list[float]) -> tuple[np.ndarray, np.ndarray | None, str]:
+    def _forecast(self, state, t: pd.Timestamp, leads: list[float]) -> tuple[np.ndarray, np.ndarray | None, str]:
         """(probs per lead, member probs (K, leads, H, W) or None, model name)."""
         if self.ensemble is not None and self.series is not None:
+            # one map stack per lead: the river-flow channels hold the forecast flow for that lead
+            maps = np.stack([self.static.map_stack(state, t, flows=self.series.flow_features(t, lv)) for lv in leads])
             n_members = self.cfg.members
             member_ids = [None] if n_members <= 0 else list(np.linspace(0, 50, n_members).round().astype(int))
-            vals, miss, lead_list = [], [], []
+            vals, miss, lead_list, map_index = [], [], [], []
             for m in member_ids:
                 v, mi, is_fc = self.series.tokens(t, None if m is None else int(m))
-                for lv in leads:
+                for li, lv in enumerate(leads):
                     vals.append(v)
                     miss.append(mi)
                     lead_list.append(lv)
-            lg = self.ensemble.logits(maps, np.stack(vals), np.stack(miss), is_fc, lead_list)
+                    map_index.append(li)
+            lg = self.ensemble.logits(maps, np.stack(vals), np.stack(miss), is_fc, lead_list, map_index=map_index)
             p = 1.0 / (1.0 + np.exp(-lg))                            # (models, members*leads, H, W)
             p = p.reshape(len(self.ensemble.models), len(member_ids), len(leads), *p.shape[-2:])
             members = p.reshape(-1, len(leads), *p.shape[-2:])       # every (model, member) as a sample
@@ -238,7 +240,6 @@ class Twin:
         if self.level is not None and self.series is not None:
             out = np.stack([self.level.predict("river_threshold", self.level.flows_at(self.series, t, lv)) for lv in leads])
             return out, None, "river-threshold baseline"
-        state = self.composer.state(t)
         return np.stack([persistence(state, self.cube.grid.shape) for _ in leads]), None, "persistence baseline"
 
     def _update_index(self, summary: dict[str, Any]) -> None:

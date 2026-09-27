@@ -19,10 +19,18 @@ const VIEWS: { id: View; label: string; hint: string }[] = [
 
 function RangeText({ r, unit = "" }: { r: Range; unit?: string }) {
   return (
-    <span className="range">
-      range {compact(r.low)}–{compact(r.high)}
-      {unit}
-    </span>
+    <>
+      <span className="range">
+        range {compact(r.low)}–{compact(r.high)}
+        {unit}
+      </span>
+      {r.likely != null && (
+        <span className="range" style={{ display: "block" }}>
+          {compact(r.likely)}
+          {unit} where ≥50% likely
+        </span>
+      )}
+    </>
   );
 }
 
@@ -119,8 +127,7 @@ export default function Dashboard() {
             <div className="segmented" role="group" aria-label="Forecast horizon">
               <button type="button" aria-pressed={horizon === "now"} onClick={() => setHorizon("now")}>Now</button>
               {run?.horizons.map((x) => (
-                <button key={x.name} type="button" aria-pressed={horizon === x.name} onClick={() => setHorizon(x.name)}
-                  title={`valid ${pkTime(x.valid_time)}`}>
+                <button key={x.name} type="button" aria-pressed={horizon === x.name} onClick={() => setHorizon(x.name)}>
                   {x.name === "next" ? "Next pass" : horizonLabel(x.name).replace(" days", "d").replace(" day", "d")}
                 </button>
               ))}
@@ -132,11 +139,14 @@ export default function Dashboard() {
             <div className="segmented" role="group" aria-label="Map view">
               {VIEWS.map((v) => (
                 <button key={v.id} type="button" aria-pressed={view === v.id} disabled={horizon === "now"}
-                  title={v.hint} onClick={() => setView(v.id)}>
+                  onClick={() => setView(v.id)}>
                   {v.label}
                 </button>
               ))}
             </div>
+            <p className="small ink2" style={{ margin: "6px 0 0" }}>
+              {horizon === "now" ? "Today's map from the latest radar pass." : VIEWS.find((v) => v.id === view)?.hint}
+            </p>
           </section>
 
           {run && horizon === "now" && (
@@ -154,7 +164,25 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-              <p className="small ink2">Pick a forecast day to see the chance of flooding and who is exposed.</p>
+              {run.current_exposure && (
+                <div className="tiles" style={{ marginTop: 8 }}>
+                  <div className="tile">
+                    <div className="label">People in flooded pixels</div>
+                    <div className="value">{compact(run.current_exposure.totals.population.expected)}</div>
+                  </div>
+                  <div className="tile">
+                    <div className="label">Buildings</div>
+                    <div className="value">{compact(run.current_exposure.totals.buildings.expected)}</div>
+                  </div>
+                  <div className="tile wide">
+                    <div className="label">Roads under water</div>
+                    <div className="value">{compact(run.current_exposure.totals.road_km.expected)} km</div>
+                  </div>
+                </div>
+              )}
+              <p className="small ink2" style={{ marginTop: 8 }}>
+                Pick a forecast day to see the chance of flooding, with ranges.
+              </p>
             </section>
           )}
 
@@ -186,8 +214,8 @@ export default function Dashboard() {
                 </div>
               </div>
               <p className="small ink2" style={{ marginTop: 8 }}>
-                Expected values; ranges cover 90% of outcomes on the validation flood. Can&apos;t-tell area:{" "}
-                {compact(h.uncertain_km2)} km².
+                Big numbers are expected values (chance times exposure); ranges cover 90% of outcomes on the
+                validation flood. Can&apos;t-tell area: {compact(h.uncertain_km2)} km².
               </p>
             </section>
           )}
@@ -258,9 +286,9 @@ export default function Dashboard() {
                   <span className="spacer" />
                   <div className="chart-legend">
                     <span className="key"><span className="line" /> Observed</span>
-                    <span className="key"><span className="line dash" /> GloFAS median</span>
+                    <span className="key"><span className="line dashed" /> GloFAS median</span>
                     <span className="key"><span className="band" /> 5–95% of 51 members</span>
-                    {hydro.observed_after.length > 0 && <span className="key"><span className="line dot" /> What happened</span>}
+                    {hydro.observed_after.length > 0 && <span className="key"><span className="line dotted" /> What happened</span>}
                   </div>
                 </header>
                 {hydro.india_data_missing && (
