@@ -199,9 +199,11 @@ class StaticMaps:
         self.breaches = cube.geojson("breaches")["features"]
         self.grid = cube.grid
 
-    def breach_channel(self, t: pd.Timestamp, radius_km: float = 12.0) -> np.ndarray:
+    def breach_channel(self, t: pd.Timestamp, radius_km: float = 12.0,
+                       window: tuple[slice, slice] | None = None) -> np.ndarray:
         """1 near breaches that are open at time t (the scenario input); 0 elsewhere."""
-        out = np.zeros(self.grid.shape, dtype=np.float32)
+        rs, cs = window or (slice(0, self.grid.height), slice(0, self.grid.width))
+        out = np.zeros((rs.stop - rs.start, cs.stop - cs.start), dtype=np.float32)
         day = t.tz_convert(None).normalize() if t.tzinfo else t.normalize()
         for f in self.breaches:
             p = f["properties"]
@@ -209,25 +211,29 @@ class StaticMaps:
                 continue
             lon, lat = f["geometry"]["coordinates"]
             r0, c0 = self.grid.lonlat_to_rowcol(lon, lat)
-            rows, cols = np.ogrid[0:self.grid.height, 0:self.grid.width]
+            rows, cols = np.ogrid[rs.start:rs.stop, cs.start:cs.stop]
             d_km = np.hypot(rows - int(r0), cols - int(c0)) * self.grid.res / 1000.0
             out = np.maximum(out, (d_km <= radius_km).astype(np.float32))
         return out
 
-    def map_stack(self, state: FloodState | None, t: pd.Timestamp, hide_map: bool = False) -> np.ndarray:
-        """Model 2 map channels (9, H, W) at issue time t."""
-        h, w = self.grid.shape
+    def map_stack(self, state: FloodState | None, t: pd.Timestamp, hide_map: bool = False,
+                  window: tuple[slice, slice] | None = None) -> np.ndarray:
+        """Model 2 map channels (9, H, W) at issue time t, for the whole grid or one (rows, cols) window."""
+        rs, cs = window or (slice(0, self.grid.height), slice(0, self.grid.width))
+        h, w = rs.stop - rs.start, cs.stop - cs.start
         if state is None or hide_map:
             flood = np.zeros((h, w), np.float32)
             known = np.zeros((h, w), np.float32)
             age = np.full((h, w), MAX_STATE_AGE_DAYS / 7.0, np.float32)
         else:
-            flood = state.flooded.astype(np.float32)
-            known = state.known.astype(np.float32)
-            age = np.minimum(state.age_days(t), MAX_STATE_AGE_DAYS) / 7.0
+            flood = state.flooded[rs, cs].astype(np.float32)
+            known = state.known[rs, cs].astype(np.float32)
+            now = t.value / 86_400e9
+            age = np.where(known > 0, now - state.obs_time[rs, cs], MAX_STATE_AGE_DAYS)
+            age = (np.minimum(age, MAX_STATE_AGE_DAYS) / 7.0).astype(np.float32)
         hidden = np.full((h, w), 1.0 if (hide_map or state is None) else 0.0, np.float32)
-        return np.concatenate([np.stack([flood, known, age]), self.channels,
-                               self.breach_channel(t)[None], hidden[None]]).astype(np.float32)
+        return np.concatenate([np.stack([flood, known, age]), self.channels[:, rs, cs],
+                               self.breach_channel(t, window=(rs, cs))[None], hidden[None]]).astype(np.float32)
 
 
 def target_arrays(label: np.ndarray, static: StaticMaps) -> tuple[np.ndarray, np.ndarray]:

@@ -257,7 +257,7 @@ def build_terrain(grid: GridSpec, aoi: AOIConfig, rng: np.random.Generator) -> T
         population_density += (peak * np.exp(-((d_km / (0.6 * radius)) ** 2))).astype(np.float32)
     landcover[built & ~channel] = BUILT
     landcover[channel] = WATER
-    paddy = (landcover == CROP) & (((lat > 30.35) & (n2 > 0.35)) | (n2 > 1.1))
+    paddy = (landcover == CROP) & (((lat > 30.35) & (n2 > 1.0)) | (n2 > 1.8))
 
     population_density[channel] = 0.0
     population = (population_density * grid.pixel_area_km2).astype(np.float32)

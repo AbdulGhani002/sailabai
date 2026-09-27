@@ -90,7 +90,6 @@ class ForecastChips(Dataset):
         t = pair["issue"]
         state = self.composer.state(t)
         hide_map = rng.random() < self.dropout.map
-        maps = self.static.map_stack(state, t, hide_map=hide_map)
         member = int(rng.integers(0, self.series.members)) if rng.random() < self.dropout.random_member else None
         values, missing, is_fc = self.series.tokens(t, member)
 
@@ -113,7 +112,8 @@ class ForecastChips(Dataset):
         interest = mask & ((target > 0) | prev)
         r, c = self._crop_origin(rng, interest, mask)
         s = np.s_[r:r + self.chip, c:c + self.chip]
-        maps_c, target_c, mask_c = maps[:, s[0], s[1]], target[s], mask[s]
+        maps_c = self.static.map_stack(state, t, hide_map=hide_map, window=s)
+        target_c, mask_c = target[s], mask[s]
         prev_c = prev[s].astype(np.float32)
         if self.augment:
             k = int(rng.integers(4))

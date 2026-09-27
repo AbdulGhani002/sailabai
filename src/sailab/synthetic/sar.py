@@ -155,9 +155,9 @@ def gfm_like_label(terrain: Terrain, flooded: np.ndarray, sar: np.ndarray, when:
     observed = flooded.copy()
     observed &= ~((lc == BUILT) | (lc == TREE))       # double bounce hides flooded towns and trees
     observed &= ~(flooded & (vv > -14.0))             # wind-roughened or partly submerged water
-    observed |= terrain.paddy & (vv < -15.0) & (rng.random(lc.shape) < 0.6)  # dark rice paddies
+    observed |= terrain.paddy & (vv < -15.0) & (rng.random(lc.shape) < 0.2)  # dark rice paddies
     edge = flooded ^ ndimage.binary_erosion(flooded)
-    observed ^= edge & (rng.random(lc.shape) < 0.15)  # ragged flood edges
+    observed ^= edge & (rng.random(lc.shape) < 0.1)  # ragged flood edges
     exclusion = (lc == BARE) | (lc == BUILT) | ~coverage
     return L.compose(observed | terrain.normal_water, terrain.normal_water, invalid=exclusion)
 

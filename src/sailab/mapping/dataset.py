@@ -85,7 +85,7 @@ class MappingChips(Dataset):
     def set_epoch(self, epoch: int) -> None:
         self.epoch = epoch
 
-    @lru_cache(maxsize=24)  # noqa: B019 - one dataset per training run
+    @lru_cache(maxsize=64)  # noqa: B019 - one dataset per training run
     def _scene(self, si: int) -> tuple[np.ndarray, np.ndarray]:
         sid = self.scene_ids[si]
         return scene_inputs(self.cube, sid, self.terrain), self.cube.read_label(sid, truth=self.truth)

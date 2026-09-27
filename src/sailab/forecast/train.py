@@ -128,7 +128,7 @@ def train_forecast(cfg: ForecastConfig, log=print) -> Path:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 opt.step()
                 sched.step()
-                losses.append(float(loss))
+                losses.append(float(loss.detach()))
             model.eval()
             meta = {"kind": "model2-unet-tt", "model_config": model_config, "points": points, "channels": MAP_CHANNELS,
                     "config": asdict(cfg), "epoch": epoch, "cube": cube.meta.get("name", cfg.cube),

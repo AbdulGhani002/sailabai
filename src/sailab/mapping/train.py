@@ -122,7 +122,7 @@ def train_mapping(cfg: MappingConfig, log=print) -> Path:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 opt.step()
                 sched.step()
-                losses.append(float(loss))
+                losses.append(float(loss.detach()))
             model.eval()
             scores = evaluate_scenes(model, cube, val_ids, terrain, dev, cfg.amp)
             secs = time.time() - t0
