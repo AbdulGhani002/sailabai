@@ -34,6 +34,12 @@ Everything runs end to end on the synthetic demo world today. Swapping in real d
 a real datacube with the connectors (see [docs/data.md](docs/data.md)); the models, evaluation,
 twin and dashboard do not change.
 
+The no-account connectors already work on real data. Real Copernicus GFM flood maps of the 2025
+flood, pulled with `sailab data gfm` onto a 1 km preview grid, show the flood wave moving down the
+Chenab from Jhang (1 Sep) to Shujabad and Jalalpur Pirwala (6 Sep):
+
+![real GFM flood maps, 1 and 6 Sep 2025](docs/img/real-gfm-2025.png)
+
 ## Quick start (Windows, laptop with an NVIDIA GPU)
 
 ```powershell

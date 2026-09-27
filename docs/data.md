@@ -33,7 +33,12 @@ Then, once accounts exist: Sentinel-1 images (HyP3 or Earth Engine) into `s1/`, 
 and reanalysis into `forecasts/glofas.parquet` and `series/discharge.parquet`, IMERG into
 `series/weather.parquet`. Every table records its source and version.
 
-Verified on 2026-09-27: the GFM STAC search returns passes over our box (e.g. 4 Sep 2025, orbits
+![real GFM flood maps, 1 and 6 Sep 2025](img/real-gfm-2025.png)
+
+Verified on 2026-09-27 with a 1 km test cube: static layers cover 100% of the study area (the
+JRC tiles have no overviews, so that read is the slowest; `sailab data static` retries and
+resumes), and GFM gives 11 passes between 25 Aug and 6 Sep 2025, 5 of which image enough of the
+area to keep. The GFM STAC search returns passes over our box (e.g. 4 Sep 2025, orbits
 D034 at 06:00 PKT and A042 at 18:36 PKT, product version V0M2R2); DEM, HAND, JRC and WorldCover
 tiles, the FFD archive (bulletins June 2024 to October 2025), IRSA's daily page (last 8 days),
 ECMWF open data and the EMS EMSR838 activation all respond.
