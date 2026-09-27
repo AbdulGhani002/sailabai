@@ -4,6 +4,13 @@ Temperature scaling rescales the ensemble's logits with one number per lead time
 validation event (2023). Split conformal prediction then gives two guarantees on data like the
 validation event: per pixel, a set of plausible outcomes (flood, dry, or "can't tell"), and for
 area totals such as buildings flooded, a range that contains the true value 90% of the time.
+
+Floods are rare pixels, so a plain conformal threshold is set almost entirely by easy dry pixels
+and calls nearly everything "can't tell". For the map we therefore use three ordered zones:
+"likely" (calibrated chance >= 50%), "possible" (the lowest chance at which the zone still caught
+`coverage` of the real flooding on the validation event, a class-conditional conformal bound), and
+"unlikely". Totals are calibrated on a log scale, log((observed + 1) / (expected + 1)), which stays
+stable when a flood is small.
 """
 
 from __future__ import annotations
@@ -54,8 +61,14 @@ class Calibration:
     temperatures: dict[str, float] = field(default_factory=dict)  # lead bucket ("+1d".."+7d") -> T
     default_temperature: float = 1.0
     alpha: float = 0.1
-    pixel_qhat: float | None = None                               # conformal threshold for pixel sets
-    total_quantiles: dict[str, tuple[float, float]] = field(default_factory=dict)  # measure -> (lo, hi) relative errors
+    pixel_qhat: float | None = None                               # plain conformal threshold (legacy)
+    pixel_qhat_flood: float | None = None                         # Mondrian: threshold on 1 - p for flooded pixels
+    pixel_qhat_dry: float | None = None                           # Mondrian: threshold on p for dry pixels
+    coverage: float = 0.8                                         # share of real flooding the possible zone catches
+    possible_threshold: float | None = None                       # chance above which a pixel is "possible"
+    likely_threshold: float = 0.5
+    total_quantiles: dict[str, tuple[float, float]] = field(default_factory=dict)  # measure -> (lo, hi) errors
+    total_scale: str = "relative"                                 # "relative" or "log" errors for totals
     fitted_on: list[str] = field(default_factory=list)
 
     @staticmethod
@@ -71,18 +84,31 @@ class Calibration:
             return prob
         return _sigmoid(_logit(prob) / t).astype(np.float32)
 
+    def zones(self, prob: np.ndarray) -> np.ndarray:
+        """0 = unlikely, 1 = likely (chance >= 50%), 2 = possible (inside the zone that caught
+        `coverage` of real flooding on the validation event)."""
+        possible = self.possible_threshold if self.possible_threshold is not None else 0.2
+        out = np.where(prob >= self.likely_threshold, 1, np.where(prob >= possible, 2, 0))
+        return out.astype(np.uint8)
+
     def pixel_sets(self, prob: np.ndarray) -> np.ndarray:
-        """0 = dry, 1 = flood, 2 = can't tell (both outcomes plausible at level 1 - alpha)."""
-        if self.pixel_qhat is None:
+        """0 = dry, 1 = flood, 2 = can't tell (both outcomes plausible, or neither clearly)."""
+        if self.pixel_qhat_flood is not None and self.pixel_qhat_dry is not None:
+            flood_ok = (1 - prob) <= self.pixel_qhat_flood
+            dry_ok = prob <= self.pixel_qhat_dry
+        elif self.pixel_qhat is not None:
+            flood_ok = (1 - prob) <= self.pixel_qhat
+            dry_ok = prob <= self.pixel_qhat
+        else:
             return (prob >= 0.5).astype(np.uint8)
-        flood_ok = (1 - prob) <= self.pixel_qhat
-        dry_ok = prob <= self.pixel_qhat
-        out = np.where(flood_ok & dry_ok, 2, np.where(flood_ok, 1, 0))
+        out = np.where(flood_ok & ~dry_ok, 1, np.where(dry_ok & ~flood_ok, 0, 2))
         return out.astype(np.uint8)
 
     def total_range(self, measure: str, expected: float) -> tuple[float, float]:
         """Conformal range for an area total (e.g. buildings in flooded pixels)."""
         lo, hi = self.total_quantiles.get(measure, (-0.5, 1.0))
+        if self.total_scale == "log":
+            return max(0.0, (expected + 1) * float(np.exp(lo)) - 1), max(0.0, (expected + 1) * float(np.exp(hi)) - 1)
         return max(0.0, expected * (1 + lo)), max(0.0, expected * (1 + hi))
 
     def save(self, path: Path) -> None:
@@ -139,10 +165,17 @@ class CalibrationFitter:
                                            float(b.strip("+d"))) for b in sorted(self.probs)])
             scores = np.where(y, 1 - pc, pc)
             cal.pixel_qhat = round(conformal_quantile(scores, self.alpha), 4)
+            if y.any():
+                cal.pixel_qhat_flood = round(conformal_quantile(1 - pc[y], self.alpha), 4)
+                # lowest chance that still keeps `coverage` of flooded pixels in the zone (conformal bound)
+                cal.possible_threshold = round(1 - conformal_quantile(1 - pc[y], 1 - cal.coverage), 4)
+            if (~y).any():
+                cal.pixel_qhat_dry = round(conformal_quantile(pc[~y], self.alpha), 4)
+        cal.total_scale = "log"
         for name, pairs in self.totals.items():
             arr = np.asarray(pairs)
-            rel = (arr[:, 1] - arr[:, 0]) / np.maximum(arr[:, 0], 1.0)
-            lo = -conformal_quantile(-rel, self.alpha / 2)
-            hi = conformal_quantile(rel, self.alpha / 2)
+            err = np.log((arr[:, 1] + 1.0) / (arr[:, 0] + 1.0))
+            lo = -conformal_quantile(-err, self.alpha / 2)
+            hi = conformal_quantile(err, self.alpha / 2)
             cal.total_quantiles[name] = (round(float(lo), 4), round(float(hi), 4))
         return cal

@@ -148,9 +148,11 @@ class Twin:
             prob = np.where(self.static.normal_water, 0.0, probs[i]).astype(np.float32)
             write_raster(folder / f"prob_{name}.tif", _percent(prob), grid, dtype="uint8", nodata=255, cog=True,
                          tags={"layer": "flood chance (%)", "lead_days": f"{lead:.2f}", "model": model_name})
-            sets = self.calibration.pixel_sets(prob)
+            sets = self.calibration.zones(prob)
             write_raster(folder / f"sets_{name}.tif", sets, grid, dtype="uint8", nodata=255, cog=True,
-                         tags={"layer": "0 dry, 1 flood, 2 can't tell", "alpha": self.calibration.alpha})
+                         tags={"layer": "0 unlikely, 1 likely (>= 50%), 2 possible",
+                               "coverage": self.calibration.coverage,
+                               "possible_threshold": self.calibration.possible_threshold})
             mem = members[:, i] if members is not None else None
             if mem is not None:
                 write_raster(folder / f"spread_{name}.tif", _percent(mem.std(axis=0)), grid, dtype="uint8", nodata=255,
@@ -161,6 +163,7 @@ class Twin:
                 "flooded_km2_expected": exposure["totals"]["area_km2"]["expected"],
                 "totals": exposure["totals"], "roads": exposure["roads"][:200], "places": exposure["places"],
                 "uncertain_km2": round(float((sets == 2).sum() * grid.pixel_area_km2), 1),
+                "likely_km2": round(float((sets == 1).sum() * grid.pixel_area_km2), 1),
                 "layers": {"prob": f"prob_{name}.tif", "sets": f"sets_{name}.tif",
                            **({"spread": f"spread_{name}.tif"} if mem is not None else {})},
             })
@@ -178,7 +181,9 @@ class Twin:
             "synthetic": self.cube.is_synthetic,
             "disclaimer": DISCLAIMER,
             "model": model_name,
-            "calibration": {"temperature": self.calibration.default_temperature, "alpha": self.calibration.alpha},
+            "calibration": {"temperature": self.calibration.default_temperature, "alpha": self.calibration.alpha,
+                            "coverage": self.calibration.coverage,
+                            "possible_threshold": self.calibration.possible_threshold},
             "latest_pass": None if latest.empty else {
                 "scene_id": latest.iloc[-1]["scene_id"], "time": latest.iloc[-1]["time"].isoformat(),
                 "mapped_by": self.mapped.get(latest.iloc[-1]["scene_id"], "gfm")},

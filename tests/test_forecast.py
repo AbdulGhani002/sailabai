@@ -91,7 +91,21 @@ def test_conformal_sets_cover_the_truth():
     sets = cal.pixel_sets(p)
     covered = np.where(sets == 2, True, np.where(sets == 1, y, ~y))
     assert covered.mean() >= 0.88
+    # class-conditional: each class is covered on its own, even when floods are rare
+    assert covered[y].mean() >= 0.88 and covered[~y].mean() >= 0.88
     assert conformal_quantile(np.arange(10.0), 0.1) == 9.0
+
+
+def test_rare_flood_conformal_is_informative():
+    rng = np.random.default_rng(2)
+    p = np.where(rng.random(100_000) < 0.03, rng.uniform(0.3, 0.95, 100_000), rng.uniform(0.0, 0.05, 100_000))
+    y = rng.random(100_000) < p
+    fitter = CalibrationFitter(alpha=0.1)
+    fitter.add(p, y.astype(float), np.ones_like(p, bool), lead_days=2.0)
+    sets = fitter.fit(["val"]).pixel_sets(p)
+    assert (sets == 2).mean() < 0.5          # most dry pixels are called dry, not "can't tell"
+    covered = np.where(sets == 2, True, np.where(sets == 1, y, ~y))
+    assert covered[y].mean() >= 0.85         # real floods are rarely called dry
 
 
 def test_calibration_roundtrip(tmp_path):
@@ -135,3 +149,16 @@ def test_convlstm_comparison_model():
     assert out.shape == (2, 64, 64)
     with pytest.raises(ValueError):
         build_model({"arch": "nope"})
+
+
+def test_confidence_zones():
+    cal = Calibration(possible_threshold=0.05)
+    assert list(cal.zones(np.array([0.01, 0.1, 0.6]))) == [0, 2, 1]  # unlikely, possible, likely
+    fitter = CalibrationFitter(alpha=0.1)
+    rng = np.random.default_rng(5)
+    p = rng.random(20_000) ** 3
+    y = rng.random(20_000) < p
+    fitter.add(p, y.astype(float), np.ones_like(p, bool), lead_days=1.0)
+    fitted = fitter.fit(["val"])
+    caught = (fitted.zones(p)[y] > 0).mean()   # likely or possible
+    assert caught >= 0.78                       # the zone keeps its 80% coverage promise

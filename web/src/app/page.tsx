@@ -13,7 +13,7 @@ import { useTheme } from "@/lib/theme";
 type View = "prob" | "sets" | "spread";
 const VIEWS: { id: View; label: string; hint: string }[] = [
   { id: "prob", label: "Chance", hint: "Calibrated chance of flooding at each pixel" },
-  { id: "sets", label: "Confidence", hint: "Where the forecast is sure (flood) and where it can't tell, at 90% confidence" },
+  { id: "sets", label: "Confidence", hint: "Likely (50%+) and possible: the possible zone caught 80% of real flooding on the validation flood" },
   { id: "spread", label: "Disagreement", hint: "How much the ensemble members disagree" },
 ];
 
@@ -215,7 +215,7 @@ export default function Dashboard() {
               </div>
               <p className="small ink2" style={{ marginTop: 8 }}>
                 Big numbers are expected values (chance times exposure); ranges cover 90% of outcomes on the
-                validation flood. Can&apos;t-tell area: {compact(h.uncertain_km2)} km².
+                validation flood. Possible-flood zone: {compact(h.uncertain_km2)} km².
               </p>
             </section>
           )}

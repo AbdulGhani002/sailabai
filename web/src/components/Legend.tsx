@@ -9,7 +9,7 @@ type Entry = { label: string; color: string; opacity?: number };
 const TITLES: Record<string, string> = {
   current: "Latest flood map",
   prob: "Chance of flooding",
-  sets: "Confidence (90% sets)",
+  sets: "Confidence zones",
   spread: "Disagreement between runs",
 };
 

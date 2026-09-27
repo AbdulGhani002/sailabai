@@ -47,11 +47,16 @@ def label_colormap(theme: str = "light") -> dict[int, tuple[int, int, int, int]]
     return cmap
 
 
+# Confidence zones are ordered (likely > possible), so they share one hue: an ordinal blue ramp,
+# darker for "likely" on light maps and lighter for it on dark maps.
+ZONES = {"light": {1: "#1c5cab", 2: "#86b6ef"}, "dark": {1: "#b7d3f6", 2: "#2a78d6"}}
+
+
 def sets_colormap(theme: str = "light") -> dict[int, tuple[int, int, int, int]]:
-    """Conformal sets: 0 dry (clear), 1 flood (blue), 2 can't tell (orange)."""
+    """Confidence zones: 0 unlikely (clear), 1 likely, 2 possible."""
     cmap = {v: (0, 0, 0, 0) for v in range(256)}
-    cmap[1] = _rgba(FLOOD if theme == "light" else FLOOD_DARK, 0.8)
-    cmap[2] = _rgba(UNSURE if theme == "light" else UNSURE_DARK, 0.75)
+    cmap[1] = _rgba(ZONES[theme][1], 0.9)
+    cmap[2] = _rgba(ZONES[theme][2], 0.7)
     return cmap
 
 
@@ -80,8 +85,8 @@ def legend(layer: str, theme: str = "light") -> list[dict]:
         return [{"label": "Flooded", "color": FLOOD if theme == "light" else FLOOD_DARK},
                 {"label": "Normal water (rivers)", "color": NORMAL_WATER}]
     if layer.startswith("sets"):
-        return [{"label": "Flood (confident)", "color": FLOOD if theme == "light" else FLOOD_DARK},
-                {"label": "Can't tell", "color": UNSURE if theme == "light" else UNSURE_DARK}]
+        return [{"label": "Likely (50%+)", "color": ZONES[theme][1]},
+                {"label": "Possible (zone that caught 80% of floods on validation)", "color": ZONES[theme][2]}]
     if layer.startswith("spread"):
         return [{"label": "Low disagreement", "color": UNSURE, "opacity": 0.25},
                 {"label": "High disagreement (30+ pts)", "color": UNSURE, "opacity": 0.9}]
