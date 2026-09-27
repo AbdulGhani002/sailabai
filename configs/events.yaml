@@ -1,0 +1,78 @@
+# Flood events and how we use them. Team rule 1: split data by flood event, never by random tiles.
+# Peak flows are from the FFC Annual Flood Report 2025 and earlier FFC reports.
+# split: train | val | test | replay | live | stress
+events:
+  - id: monsoon-2015
+    start: "2015-07-01"
+    end: "2015-09-30"
+    split: train
+    rivers: [chenab, ravi, sutlej]
+  - id: monsoon-2016
+    start: "2016-07-01"
+    end: "2016-09-30"
+    split: train
+    rivers: [chenab, ravi, sutlej]
+    peak: {gauge: khanki, cusecs: 418736}
+  - id: monsoon-2017
+    start: "2017-07-01"
+    end: "2017-09-30"
+    split: train
+  - id: monsoon-2018
+    start: "2018-07-01"
+    end: "2018-09-30"
+    split: train
+  - id: monsoon-2019
+    start: "2019-07-01"
+    end: "2019-09-30"
+    split: train
+  - id: monsoon-2020
+    start: "2020-07-01"
+    end: "2020-09-30"
+    split: train
+  - id: monsoon-2021
+    start: "2021-07-01"
+    end: "2021-09-30"
+    split: train
+  - id: monsoon-2022
+    start: "2022-07-01"
+    end: "2022-09-30"
+    split: train
+  - id: monsoon-2024
+    start: "2024-07-01"
+    end: "2024-09-30"
+    split: train
+  - id: sutlej-2023
+    start: "2023-07-01"
+    end: "2023-09-30"
+    split: val
+    rivers: [sutlej]
+    peak: {gauge: ganda_singh_wala, cusecs: 278297}
+    note: Validation and calibration (temperature scaling, conformal).
+  - id: flood-2025
+    start: "2025-07-15"
+    end: "2025-10-10"
+    split: test
+    rivers: [chenab, ravi, sutlej]
+    peak: {gauge: qadirabad, cusecs: 1077951}
+    other_peaks:
+      - {gauge: panjnad, cusecs: 703698}
+    breaches: [qadirabad, rewaz_bridge, sidhnai]
+    note: Final test, used once. Planned breaches moved water; score errors near them separately.
+  - id: monsoon-2026
+    start: "2026-07-01"
+    end: "2026-09-30"
+    split: replay
+    peak: {gauge: marala, cusecs: 275600}
+    note: Replay as if live.
+  - id: monsoon-2027
+    start: "2027-07-01"
+    end: "2027-09-30"
+    split: live
+    note: Live test during the final months of the FYP.
+  - id: chenab-jhelum-2014
+    start: "2014-08-25"
+    end: "2014-09-30"
+    split: stress
+    rivers: [chenab, jhelum]
+    peak: {gauge: qadirabad, cusecs: 904285}
+    note: Before Sentinel-1 data; stress test with river data only.

@@ -1,0 +1,253 @@
+# Licence register (team rules 4 and 5). One entry per dataset we touch.
+# Fill download_date and version when you first download. `sailab licences check` validates this file
+# and refuses product use of anything that is not commercial-safe.
+#
+# commercial_safe: true | false | unknown     (unknown blocks product use until someone checks it)
+# share_alike: keep as a separate layer, never merged into our own derived layers (OSM rule)
+# uses: which of train / test / product we may use it for
+datasets:
+  - id: sentinel1
+    name: Sentinel-1 GRD (Copernicus)
+    licence: Copernicus Sentinel data terms (free, full and open)
+    licence_url: https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice
+    credit: "Contains modified Copernicus Sentinel data [year]"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: null
+    download_date: null
+  - id: gfm
+    name: Copernicus GFM flood extent
+    licence: Copernicus EMS data policy (free and open, attribution)
+    licence_url: https://extwiki.eodc.eu/GFM/PUM/Products
+    credit: "Copernicus Emergency Management Service - Global Flood Monitoring (GFM)"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: null
+    download_date: null
+    notes: Product version changed in 2025; pin and save it with every sample.
+  - id: imerg
+    name: NASA GPM IMERG V07
+    licence: NASA open data (no restrictions)
+    licence_url: https://gpm.nasa.gov/data/policy
+    credit: "NASA/JAXA GPM IMERG"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: V07
+    download_date: null
+    notes: NASA is moving IMERG to V08 during the project.
+  - id: ecmwf_open
+    name: ECMWF open data (IFS and ENS)
+    licence: CC BY 4.0
+    licence_url: https://www.ecmwf.int/en/forecasts/datasets/open-data
+    credit: "Contains ECMWF open data"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: null
+    download_date: null
+  - id: glofas
+    name: GloFAS river discharge (v4.x)
+    licence: Copernicus licence (CEMS)
+    licence_url: https://ewds.climate.copernicus.eu
+    credit: "Copernicus Emergency Management Service - Global Flood Awareness System (GloFAS)"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: "4.5"
+    download_date: null
+    notes: GloFAS v5 is coming; pin versions.
+  - id: ffd_bulletins
+    name: PMD Flood Forecasting Division bulletins
+    licence: Unclear (public government bulletins)
+    licence_url: https://ffd.pmd.gov.pk/bulletins/archive
+    credit: "Pakistan Meteorological Department, Flood Forecasting Division, Lahore"
+    commercial_safe: unknown
+    share_alike: false
+    uses: [train, test]
+    version: null
+    download_date: null
+    notes: >-
+      Bulletins say "All rights reserved; no reproduction without prior written permission".
+      Archive for internal research only, never redistribute the PDFs, and get FFD's written
+      permission for the data feed before any product use.
+  - id: irsa
+    name: IRSA daily river flow PDFs
+    licence: Unclear (public government PDFs)
+    licence_url: null
+    credit: "Indus River System Authority"
+    commercial_safe: unknown
+    share_alike: false
+    uses: [train, test]
+    version: null
+    download_date: null
+    notes: Files stay online about 10 days; archive daily.
+  - id: viirs_flood
+    name: NOAA VIIRS flood products
+    licence: US government data (check product page)
+    licence_url: null
+    credit: "NOAA JPSS VIIRS flood products"
+    commercial_safe: unknown
+    share_alike: false
+    uses: [test]
+    version: null
+    download_date: null
+    notes: Files stay online about 7 days; archive daily.
+  - id: cop_dem_glo30
+    name: Copernicus DEM GLO-30
+    licence: Copernicus DEM licence (free for any use)
+    licence_url: https://spacedata.copernicus.eu/collections/copernicus-digital-elevation-model
+    credit: "Produced using Copernicus WorldDEM-30 (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: "2021_1"
+    download_date: null
+  - id: asf_hand
+    name: ASF GLO-30 HAND
+    licence: Derived from Copernicus DEM (check ASF terms)
+    licence_url: https://registry.opendata.aws/glo-30-hand/
+    credit: "ASF DAAC GLO-30 HAND, derived from Copernicus DEM GLO-30"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: v1-2021
+    download_date: null
+  - id: jrc_gsw
+    name: JRC Global Surface Water v1.5
+    licence: Free use with attribution (EC JRC / Google)
+    licence_url: https://global-surface-water.appspot.com/download
+    credit: "Source: EC JRC/Google (Pekel et al. 2016, Nature)"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: "1.5"
+    download_date: null
+  - id: worldcover
+    name: ESA WorldCover 2021
+    licence: CC BY 4.0
+    licence_url: https://esa-worldcover.org/en/data-access
+    credit: "(c) ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: v200
+    download_date: null
+  - id: ms_buildings
+    name: Microsoft Global ML Building Footprints
+    licence: ODbL 1.0
+    licence_url: https://github.com/microsoft/GlobalMLBuildingFootprints
+    credit: "Microsoft Global ML Building Footprints (ODbL)"
+    commercial_safe: true
+    share_alike: true
+    uses: [train, test, product]
+    version: null
+    download_date: null
+    notes: ODbL is share-alike; keep as a separate layer like OSM.
+  - id: google_buildings
+    name: Google Open Buildings v3
+    licence: CC BY 4.0 or ODbL (dual)
+    licence_url: https://sites.research.google/gr/open-buildings/
+    credit: "Google Open Buildings"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: v3
+    download_date: null
+  - id: osm_roads
+    name: OpenStreetMap roads (HOT export on HDX)
+    licence: ODbL 1.0
+    licence_url: https://www.openstreetmap.org/copyright
+    credit: "(c) OpenStreetMap contributors"
+    commercial_safe: true
+    share_alike: true
+    uses: [train, test, product]
+    version: null
+    download_date: null
+    notes: Team rule 5, keep roads as a separate layer.
+  - id: worldpop
+    name: WorldPop Global2 R2025A (100 m)
+    licence: CC BY 4.0
+    licence_url: https://hub.worldpop.org
+    credit: "WorldPop (www.worldpop.org)"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: R2025A
+    download_date: null
+  - id: ems_emsr838
+    name: Copernicus EMS EMSR838 (2025 Pakistan floods)
+    licence: Copernicus EMS licence (attribution)
+    licence_url: https://emergency.copernicus.eu
+    credit: "Copernicus Emergency Management Service (EMSR838)"
+    commercial_safe: true
+    share_alike: false
+    uses: [test]
+    version: null
+    download_date: null
+  - id: unosat_2025
+    name: UNOSAT flood maps 2025 (HDX)
+    licence: Check each product (usually attribution, humanitarian use)
+    licence_url: https://data.humdata.org
+    credit: "UNITAR-UNOSAT"
+    commercial_safe: unknown
+    share_alike: false
+    uses: [test]
+    version: null
+    download_date: null
+  - id: fabdem
+    name: FABDEM
+    licence: CC BY-NC-SA 4.0 (non-commercial)
+    licence_url: https://data.bris.ac.uk/data/dataset/s5hqmjcdj8yo2ibzi9b4ew3sn
+    credit: "FABDEM (University of Bristol)"
+    commercial_safe: false
+    share_alike: true
+    uses: [test]
+    version: "1-2"
+    download_date: null
+    notes: Team rule 4, tests only, never in the product.
+  - id: worldfloods
+    name: WorldFloods
+    licence: CC BY-NC 4.0 (non-commercial)
+    licence_url: https://spaceml-org.github.io/ml4floods/
+    credit: "WorldFloods (ML4Floods)"
+    commercial_safe: false
+    share_alike: false
+    uses: [test]
+    version: null
+    download_date: null
+    notes: Team rule 4, tests only, never in the product.
+  - id: sen1floods11
+    name: Sen1Floods11
+    licence: Check repository licence
+    licence_url: https://github.com/cloudtostreet/Sen1Floods11
+    credit: "Bonafilia et al. 2020, Sen1Floods11"
+    commercial_safe: unknown
+    share_alike: false
+    uses: [train, test]
+    version: null
+    download_date: null
+    notes: Practice and pre-training only.
+  - id: floodcastbench
+    name: FloodCastBench
+    licence: Check dataset licence
+    licence_url: https://www.nature.com/articles/s41597-025-04725-2
+    credit: "FloodCastBench (Scientific Data, 2025)"
+    commercial_safe: unknown
+    share_alike: false
+    uses: [train, test]
+    version: null
+    download_date: null
+    notes: Simulation data for the hourly stretch goal; label outputs as simulation.
+  - id: terramind_small
+    name: TerraMind-small weights (IBM and ESA)
+    licence: Apache-2.0
+    licence_url: https://huggingface.co/ibm-esa-geospatial
+    credit: "TerraMind (IBM Research, ESA Phi-lab and partners)"
+    commercial_safe: true
+    share_alike: false
+    uses: [train, test, product]
+    version: v1-small
+    download_date: null

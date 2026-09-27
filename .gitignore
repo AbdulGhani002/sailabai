@@ -1,0 +1,59 @@
+# --- Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+
+# --- Data and model outputs: never commit data, only code and small configs.
+# Raw radar scenes are ~1 GB each and a monsoon is 10 to 13 GB; keep them on the external drive.
+/data/
+/runs/
+/mlruns/
+/checkpoints/
+/artifacts/
+*.tif
+*.tiff
+*.nc
+*.grib
+*.grib2
+*.zarr/
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+!tests/fixtures/**
+
+# --- Secrets and credentials (Copernicus, Earthdata, EWDS, Earth Engine)
+.env
+.env.*
+!.env.example
+.netrc
+_netrc
+.cdsapirc
+*service-account*.json
+credentials*.json
+
+# --- Node / Next.js dashboard
+node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+
+# --- Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

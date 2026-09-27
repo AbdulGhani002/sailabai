@@ -1,0 +1,115 @@
+# River gauges and forecast points. Coordinates are approximate: snap each one to the right
+# GloFAS river cell before use (first-two-weeks task for the Model 2 owner).
+# design_capacity_cusecs is the structure's design flood capacity (as printed in FFD bulletins),
+# used for display and for the synthetic demo's breach logic.
+# official_lag_hours_to_next is the FFC time-lag chart travel time to the next downstream gauge.
+gauges:
+  - id: marala
+    name: Marala Headworks
+    river: chenab
+    country: PK
+    lat: 32.672
+    lon: 74.465
+    design_capacity_cusecs: 1100000
+    next: khanki
+    official_lag_hours_to_next: 11
+    in_model_inputs: true
+  - id: khanki
+    name: Khanki Headworks
+    river: chenab
+    country: PK
+    lat: 32.404
+    lon: 73.974
+    design_capacity_cusecs: 1100000
+    next: qadirabad
+    official_lag_hours_to_next: 6
+    in_model_inputs: false
+  - id: qadirabad
+    name: Qadirabad Barrage
+    river: chenab
+    country: PK
+    lat: 32.321
+    lon: 73.694
+    design_capacity_cusecs: 807000
+    next: trimmu
+    official_lag_hours_to_next: 64   # 2025 took 112 hours
+    in_model_inputs: true
+  - id: trimmu
+    name: Trimmu Barrage
+    river: chenab
+    country: PK
+    lat: 31.146
+    lon: 72.146
+    design_capacity_cusecs: 645000
+    next: panjnad
+    official_lag_hours_to_next: 30
+    in_model_inputs: true
+  - id: sidhnai
+    name: Sidhnai Barrage
+    river: ravi
+    country: PK
+    lat: 30.573
+    lon: 72.143
+    design_capacity_cusecs: 150000
+    next: panjnad
+    official_lag_hours_to_next: 36
+    in_model_inputs: true
+  - id: ganda_singh_wala
+    name: Ganda Singh Wala
+    river: sutlej
+    country: PK
+    lat: 31.040
+    lon: 74.530
+    design_capacity_cusecs: null
+    next: islam
+    official_lag_hours_to_next: 72
+    in_model_inputs: false
+  - id: islam
+    name: Islam Headworks
+    river: sutlej
+    country: PK
+    lat: 29.817
+    lon: 72.550
+    design_capacity_cusecs: 300000
+    next: panjnad
+    official_lag_hours_to_next: 48
+    in_model_inputs: true
+  - id: panjnad
+    name: Panjnad Headworks
+    river: chenab
+    country: PK
+    lat: 29.346
+    lon: 71.021
+    design_capacity_cusecs: 700000
+    next: null
+    official_lag_hours_to_next: null
+    in_model_inputs: true
+
+# Upstream points inside India. Routine sharing stopped when the Indus Waters Treaty was put in
+# abeyance (April 2025), so these series are mostly missing from then on. Model 2 must cope.
+upstream_india:
+  - id: akhnoor
+    name: Akhnoor
+    river: chenab
+    country: IN
+    lat: 32.890
+    lon: 74.740
+    next: marala
+    official_lag_hours_to_next: 8
+  - id: madhopur
+    name: Madhopur Headworks
+    river: ravi
+    country: IN
+    lat: 32.370
+    lon: 75.600
+    next: sidhnai
+    official_lag_hours_to_next: 96
+  - id: ferozepur
+    name: Ferozepur Headworks
+    river: sutlej
+    country: IN
+    lat: 30.990
+    lon: 74.570
+    next: islam
+    official_lag_hours_to_next: 60
+india_data_cutoff: "2025-04-24"

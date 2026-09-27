@@ -1,0 +1,77 @@
+# Study area: the Trimmu to Panjnad reach, where the Chenab, Jhelum, Ravi and Sutlej meet.
+# About 42,000 km2 around Multan. See docs/study_area.md.
+name: trimmu-panjnad
+description: Trimmu to Panjnad reach around Multan (Chenab, Jhelum, Ravi, Sutlej)
+
+# Geographic box in degrees (EPSG:4326).
+bbox:
+  west: 70.9
+  south: 29.2
+  east: 72.7
+  north: 31.4
+
+# Optional eastward extension that adds the 2023 Sutlej flood (Ganda Singh Wala to Islam).
+extended_east: 74.75
+use_extension: false
+
+# Analysis grid. UTM 42N keeps pixels square in metres; the east edge crosses into zone 43,
+# which adds well under 0.1% area error at this size.
+grid:
+  crs: EPSG:32642
+  resolution_m: 20          # production grid, ~8,650 x 12,200 pixels
+  demo_resolution_m: 400    # synthetic demo grid, fast on a laptop
+
+# Places shown on the dashboard. Coordinates are approximate (to ~1 km).
+places:
+  - {name: Multan, lat: 30.1575, lon: 71.5249, kind: city}
+  - {name: Muzaffargarh, lat: 30.0736, lon: 71.1805, kind: city}
+  - {name: Jhang, lat: 31.2681, lon: 72.3181, kind: city}
+  - {name: Khanewal, lat: 30.3017, lon: 71.9321, kind: city}
+  - {name: Shujabad, lat: 29.8803, lon: 71.2931, kind: town}
+  - {name: Jalalpur Pirwala, lat: 29.5051, lon: 71.2224, kind: town}
+  - {name: Lodhran, lat: 29.5405, lon: 71.6336, kind: town}
+  - {name: Bahawalpur, lat: 29.3956, lon: 71.6836, kind: city}
+  - {name: Kabirwala, lat: 30.4053, lon: 71.8662, kind: town}
+  - {name: Mailsi, lat: 29.8006, lon: 72.1753, kind: town}
+  - {name: Hasilpur, lat: 29.6962, lon: 72.5448, kind: town}
+  - {name: Alipur, lat: 29.3817, lon: 70.9114, kind: town}
+  - {name: Uch Sharif, lat: 29.2333, lon: 71.0667, kind: town}
+  - {name: Shorkot, lat: 30.5000, lon: 72.4000, kind: town}
+
+# Approximate river centrelines (lat, lon), upstream to downstream. They drive the synthetic
+# demo world and the dashboard overlay only. Real work uses the DEM, HAND and JRC water layers.
+rivers:
+  chenab:
+    - [31.40, 72.52]
+    - [31.26, 72.30]
+    - [31.146, 72.146]
+    - [30.95, 72.02]
+    - [30.78, 71.90]
+    - [30.60, 71.79]
+    - [30.40, 71.60]
+    - [30.20, 71.40]
+    - [29.95, 71.27]
+    - [29.70, 71.19]
+    - [29.48, 71.13]
+    - [29.346, 71.021]
+    - [29.20, 70.95]
+  jhelum:
+    - [31.40, 72.27]
+    - [31.26, 72.21]
+    - [31.146, 72.146]
+  ravi:
+    - [30.78, 72.70]
+    - [30.66, 72.40]
+    - [30.573, 72.143]
+    - [30.56, 71.95]
+    - [30.60, 71.79]
+  sutlej:
+    - [29.98, 72.70]
+    - [29.817, 72.550]
+    - [29.72, 72.35]
+    - [29.68, 72.10]
+    - [29.58, 71.85]
+    - [29.47, 71.62]
+    - [29.40, 71.35]
+    - [29.36, 71.12]
+    - [29.346, 71.021]
