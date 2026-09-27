@@ -187,16 +187,19 @@ def hydrograph(gauge_id: str, date: str, cube: str = DEFAULT_CUBE, history_days:
 
 
 @app.get("/api/results")
-def results(experiment: str | None = None) -> list[dict[str, Any]]:
+def results(experiment: str | None = None, split: str | None = None) -> list[dict[str, Any]]:
+    """Latest scores of each (experiment, model, split), optionally for one split."""
     with session() as s:
         q = select(Result)
         if experiment:
             q = q.where(Result.experiment == experiment)
+        if split:
+            q = q.where(Result.split == split)
         rows = s.scalars(q).all()
     if not rows:
         return []
     df = pd.DataFrame([{c.name: getattr(r, c.name) for c in Result.__table__.columns} for r in rows])
-    latest = df.groupby(["experiment", "model"])["time"].transform("max")
+    latest = df.groupby(["experiment", "model", "split"])["time"].transform("max")
     df = df[df["time"] == latest].drop(columns=["id"])
     return df.replace({np.nan: None}).to_dict("records")
 

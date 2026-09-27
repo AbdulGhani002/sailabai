@@ -1,0 +1,25 @@
+{
+  "runs": [
+    {
+      "event": "flood-2025",
+      "cube": "synthetic:demo",
+      "experiment": "model1",
+      "time": "2026-09-27T10:11:56+00:00",
+      "commit": "b7260d8",
+      "user": "itsag",
+      "attempt": 1,
+      "reason": ""
+    },
+    {
+      "event": "flood-2025",
+      "cube": "synthetic:demo",
+      "experiment": "model2",
+      "time": "2026-09-27T10:14:51+00:00",
+      "commit": "2e7b230",
+      "user": "itsag",
+      "attempt": 1,
+      "touches_of_event": 2,
+      "reason": ""
+    }
+  ]
+}

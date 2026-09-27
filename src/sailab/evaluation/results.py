@@ -79,7 +79,7 @@ class ResultsTable:
         return rows
 
     def render_markdown(self, out: Path | None = None) -> str:
-        """A readable summary: latest run of each (experiment, model), headline metrics on all pixels."""
+        """A readable summary: latest run of each (experiment, model, split), headline metrics."""
         df = self.load()
         lines = ["# Results", "",
                  "Generated from `results/results_table.csv` by `sailab results render`. Each score sits "
@@ -87,11 +87,14 @@ class ResultsTable:
         if df.empty:
             lines.append("No results yet.")
         else:
-            latest = df.sort_values("time").groupby(["experiment", "model"], sort=False)["time"].transform("max")
+            keys = ["experiment", "model", "split"]
+            latest = df.groupby(keys, sort=False)["time"].transform("max")
             df = df[df["time"] == latest]
-            for (experiment, model), part in df.groupby(["experiment", "model"], sort=False):
+            order = {"val": 0, "test": 1, "replay": 2, "live": 3}
+            groups = sorted(df.groupby(keys, sort=False), key=lambda g: (g[0][0], order.get(g[0][2], 9), g[0][1]))
+            for (experiment, model, split), part in groups:
                 first = part.iloc[0]
-                lines += [f"## {experiment}: {model} vs {first['baseline']}", "",
+                lines += [f"## {experiment} ({split}): {model} vs {first['baseline']}", "",
                           f"Split `{first['split']}`, commit `{first['commit']}`, {first['time']}, "
                           f"data `{first['data_versions']}`.", ""]
                 view = part[part["subset"].isin(["all", "newly_flooded", "drained"])]

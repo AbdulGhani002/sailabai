@@ -99,11 +99,13 @@ def _git_commit() -> str:
 
 
 class TestLock:
-    """The 2025 flood is the final test and is scored once.
+    """The 2025 flood is the final test: each model is scored on it once.
 
-    The first scoring run on a test event writes results/test_lock.json (committed to git). Later
-    runs refuse unless `force=True` with a written reason, and the rerun is logged, so the report
-    can say honestly how many times the test set was touched.
+    The first scoring run of an experiment (e.g. "model1", "model2") on a test event writes
+    results/test_lock.json (committed to git). A second run of the same experiment on the same event
+    is refused unless `force=True` with a written reason, and is logged; other experiments may take
+    their own single shot, and every attempt of every experiment stays in the log, so the report can
+    say honestly how often the test set was touched.
     """
 
     __test__ = False  # not a pytest test class
@@ -116,21 +118,23 @@ class TestLock:
             return json.loads(self.path.read_text(encoding="utf-8"))
         return {"runs": []}
 
-    def runs(self, event_id: str | None = None, cube: str | None = None) -> list[dict]:
+    def runs(self, event_id: str | None = None, cube: str | None = None, experiment: str | None = None) -> list[dict]:
         runs = self._load()["runs"]
         return [r for r in runs if (event_id is None or r["event"] == event_id)
-                and (cube is None or r.get("cube", "real") == cube)]
+                and (cube is None or r.get("cube", "real") == cube)
+                and (experiment is None or r["experiment"] == experiment)]
 
     def acquire(self, event_id: str, experiment: str, cube: str = "real", force: bool = False,
                 reason: str = "") -> dict:
-        """Record a scoring run on a test event. The lock is per datacube, so scoring the synthetic
-        demo cube never uses up the real 2025 test."""
-        previous = self.runs(event_id, cube)
+        """Record a scoring run on a test event. The lock is per datacube and experiment, so scoring
+        the synthetic demo cube never uses up the real 2025 test, and Model 1 scoring its test does
+        not block Model 2 from scoring its own."""
+        previous = self.runs(event_id, cube, experiment)
         if previous and not force:
             first = previous[0]
             raise TestAlreadyUsedError(
-                f"test event {event_id} was already scored on {first['time']} ({first['experiment']}, "
-                f"commit {first['commit']}). Re-scoring needs force=True and a written reason."
+                f"test event {event_id} was already scored by {experiment} on {first['time']} "
+                f"(commit {first['commit']}). Re-scoring needs force=True and a written reason."
             )
         if previous and not reason.strip():
             raise TestAlreadyUsedError("re-scoring a test event needs a written reason")
@@ -142,6 +146,7 @@ class TestLock:
             "commit": _git_commit(),
             "user": getpass.getuser(),
             "attempt": len(previous) + 1,
+            "touches_of_event": len(self.runs(event_id, cube)) + 1,
             "reason": reason,
         }
         data = self._load()

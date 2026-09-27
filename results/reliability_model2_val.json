@@ -1,0 +1,1498 @@
+{
+ "experiment": "model2",
+ "split": "val",
+ "cube": "demo",
+ "time": "2026-09-27T10:13:46+00:00",
+ "models": {
+  "persistence": {
+   "all": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0037,
+     "count": 25508762
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.248,
+     "count": 146307
+    }
+   ],
+   "+1d": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0032,
+     "count": 5181854
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.2392,
+     "count": 31083
+    }
+   ],
+   "+2d": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0038,
+     "count": 3388447
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.2631,
+     "count": 18575
+    }
+   ],
+   "+3d": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0038,
+     "count": 3388447
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.2631,
+     "count": 18575
+    }
+   ],
+   "+4d": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0038,
+     "count": 3388447
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.2631,
+     "count": 18575
+    }
+   ],
+   "+5d": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0038,
+     "count": 3385771
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.2321,
+     "count": 21251
+    }
+   ],
+   "+6d": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0039,
+     "count": 3388208
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.2522,
+     "count": 18814
+    }
+   ],
+   "+7d": [
+    {
+     "mean_prob": 0.01,
+     "observed": 0.0039,
+     "count": 3387588
+    },
+    {
+     "mean_prob": 0.98,
+     "observed": 0.2318,
+     "count": 19434
+    }
+   ]
+  },
+  "historical_frequency": {
+   "all": [
+    {
+     "mean_prob": 0.0014,
+     "observed": 0.0032,
+     "count": 25242715
+    },
+    {
+     "mean_prob": 0.1382,
+     "observed": 0.0445,
+     "count": 185045
+    },
+    {
+     "mean_prob": 0.2403,
+     "observed": 0.0066,
+     "count": 65652
+    },
+    {
+     "mean_prob": 0.3483,
+     "observed": 0.0445,
+     "count": 46912
+    },
+    {
+     "mean_prob": 0.4438,
+     "observed": 0.1231,
+     "count": 37647
+    },
+    {
+     "mean_prob": 0.5455,
+     "observed": 0.2697,
+     "count": 26580
+    },
+    {
+     "mean_prob": 0.6515,
+     "observed": 0.4041,
+     "count": 20485
+    },
+    {
+     "mean_prob": 0.7413,
+     "observed": 0.5752,
+     "count": 20932
+    },
+    {
+     "mean_prob": 0.8326,
+     "observed": 0.7911,
+     "count": 8901
+    },
+    {
+     "mean_prob": 0.9273,
+     "observed": 0.475,
+     "count": 200
+    }
+   ],
+   "+1d": [
+    {
+     "mean_prob": 0.0013,
+     "observed": 0.0029,
+     "count": 5135738
+    },
+    {
+     "mean_prob": 0.1378,
+     "observed": 0.0516,
+     "count": 35086
+    },
+    {
+     "mean_prob": 0.2401,
+     "observed": 0.007,
+     "count": 12394
+    },
+    {
+     "mean_prob": 0.3487,
+     "observed": 0.0452,
+     "count": 8688
+    },
+    {
+     "mean_prob": 0.4432,
+     "observed": 0.1147,
+     "count": 6939
+    },
+    {
+     "mean_prob": 0.5458,
+     "observed": 0.2469,
+     "count": 4950
+    },
+    {
+     "mean_prob": 0.6513,
+     "observed": 0.3987,
+     "count": 3717
+    },
+    {
+     "mean_prob": 0.7406,
+     "observed": 0.5908,
+     "count": 3790
+    },
+    {
+     "mean_prob": 0.8338,
+     "observed": 0.7616,
+     "count": 1590
+    },
+    {
+     "mean_prob": 0.9283,
+     "observed": 0.4222,
+     "count": 45
+    }
+   ],
+   "+2d": [
+    {
+     "mean_prob": 0.0013,
+     "observed": 0.0033,
+     "count": 3352946
+    },
+    {
+     "mean_prob": 0.1386,
+     "observed": 0.0443,
+     "count": 23816
+    },
+    {
+     "mean_prob": 0.2404,
+     "observed": 0.0069,
+     "count": 8735
+    },
+    {
+     "mean_prob": 0.3482,
+     "observed": 0.0469,
+     "count": 6232
+    },
+    {
+     "mean_prob": 0.4439,
+     "observed": 0.1308,
+     "count": 4999
+    },
+    {
+     "mean_prob": 0.5456,
+     "observed": 0.278,
+     "count": 3572
+    },
+    {
+     "mean_prob": 0.6515,
+     "observed": 0.4144,
+     "count": 2727
+    },
+    {
+     "mean_prob": 0.7413,
+     "observed": 0.5847,
+     "count": 2776
+    },
+    {
+     "mean_prob": 0.833,
+     "observed": 0.8094,
+     "count": 1191
+    },
+    {
+     "mean_prob": 0.9275,
+     "observed": 0.4643,
+     "count": 28
+    }
+   ],
+   "+3d": [
+    {
+     "mean_prob": 0.0014,
+     "observed": 0.0033,
+     "count": 3352091
+    },
+    {
+     "mean_prob": 0.1381,
+     "observed": 0.0434,
+     "count": 24628
+    },
+    {
+     "mean_prob": 0.2402,
+     "observed": 0.0065,
+     "count": 8778
+    },
+    {
+     "mean_prob": 0.3482,
+     "observed": 0.0469,
+     "count": 6232
+    },
+    {
+     "mean_prob": 0.4439,
+     "observed": 0.1308,
+     "count": 4999
+    },
+    {
+     "mean_prob": 0.5456,
+     "observed": 0.278,
+     "count": 3572
+    },
+    {
+     "mean_prob": 0.6515,
+     "observed": 0.4144,
+     "count": 2727
+    },
+    {
+     "mean_prob": 0.7413,
+     "observed": 0.5847,
+     "count": 2776
+    },
+    {
+     "mean_prob": 0.833,
+     "observed": 0.8094,
+     "count": 1191
+    },
+    {
+     "mean_prob": 0.9275,
+     "observed": 0.4643,
+     "count": 28
+    }
+   ],
+   "+4d": [
+    {
+     "mean_prob": 0.0014,
+     "observed": 0.0033,
+     "count": 3352541
+    },
+    {
+     "mean_prob": 0.1377,
+     "observed": 0.0414,
+     "count": 24751
+    },
+    {
+     "mean_prob": 0.2407,
+     "observed": 0.0067,
+     "count": 8505
+    },
+    {
+     "mean_prob": 0.3484,
+     "observed": 0.0467,
+     "count": 6248
+    },
+    {
+     "mean_prob": 0.4435,
+     "observed": 0.1304,
+     "count": 5016
+    },
+    {
+     "mean_prob": 0.5454,
+     "observed": 0.2913,
+     "count": 3409
+    },
+    {
+     "mean_prob": 0.6517,
+     "observed": 0.4243,
+     "count": 2663
+    },
+    {
+     "mean_prob": 0.7414,
+     "observed": 0.598,
+     "count": 2714
+    },
+    {
+     "mean_prob": 0.8321,
+     "observed": 0.8368,
+     "count": 1152
+    },
+    {
+     "mean_prob": 0.9266,
+     "observed": 0.5652,
+     "count": 23
+    }
+   ],
+   "+5d": [
+    {
+     "mean_prob": 0.0013,
+     "observed": 0.0033,
+     "count": 3353032
+    },
+    {
+     "mean_prob": 0.1387,
+     "observed": 0.0443,
+     "count": 23995
+    },
+    {
+     "mean_prob": 0.2402,
+     "observed": 0.0051,
+     "count": 8685
+    },
+    {
+     "mean_prob": 0.3482,
+     "observed": 0.0464,
+     "count": 6127
+    },
+    {
+     "mean_prob": 0.4442,
+     "observed": 0.1313,
+     "count": 4891
+    },
+    {
+     "mean_prob": 0.5456,
+     "observed": 0.2779,
+     "count": 3570
+    },
+    {
+     "mean_prob": 0.6515,
+     "observed": 0.4144,
+     "count": 2727
+    },
+    {
+     "mean_prob": 0.7413,
+     "observed": 0.5847,
+     "count": 2776
+    },
+    {
+     "mean_prob": 0.833,
+     "observed": 0.8094,
+     "count": 1191
+    },
+    {
+     "mean_prob": 0.9275,
+     "observed": 0.4643,
+     "count": 28
+    }
+   ],
+   "+6d": [
+    {
+     "mean_prob": 0.0014,
+     "observed": 0.0033,
+     "count": 3352218
+    },
+    {
+     "mean_prob": 0.1386,
+     "observed": 0.043,
+     "count": 24462
+    },
+    {
+     "mean_prob": 0.2401,
+     "observed": 0.0065,
+     "count": 8817
+    },
+    {
+     "mean_prob": 0.3482,
+     "observed": 0.0459,
+     "count": 6232
+    },
+    {
+     "mean_prob": 0.4439,
+     "observed": 0.1282,
+     "count": 4999
+    },
+    {
+     "mean_prob": 0.5456,
+     "observed": 0.2802,
+     "count": 3572
+    },
+    {
+     "mean_prob": 0.6515,
+     "observed": 0.4166,
+     "count": 2727
+    },
+    {
+     "mean_prob": 0.7413,
+     "observed": 0.5861,
+     "count": 2776
+    },
+    {
+     "mean_prob": 0.833,
+     "observed": 0.8102,
+     "count": 1191
+    },
+    {
+     "mean_prob": 0.9275,
+     "observed": 0.4643,
+     "count": 28
+    }
+   ],
+   "+7d": [
+    {
+     "mean_prob": 0.0015,
+     "observed": 0.0033,
+     "count": 3344149
+    },
+    {
+     "mean_prob": 0.1381,
+     "observed": 0.0407,
+     "count": 28307
+    },
+    {
+     "mean_prob": 0.2406,
+     "observed": 0.0073,
+     "count": 9738
+    },
+    {
+     "mean_prob": 0.3479,
+     "observed": 0.0345,
+     "count": 7153
+    },
+    {
+     "mean_prob": 0.444,
+     "observed": 0.1022,
+     "count": 5804
+    },
+    {
+     "mean_prob": 0.5452,
+     "observed": 0.2478,
+     "count": 3935
+    },
+    {
+     "mean_prob": 0.6521,
+     "observed": 0.3569,
+     "count": 3197
+    },
+    {
+     "mean_prob": 0.7419,
+     "observed": 0.506,
+     "count": 3324
+    },
+    {
+     "mean_prob": 0.8303,
+     "observed": 0.724,
+     "count": 1395
+    },
+    {
+     "mean_prob": 0.9245,
+     "observed": 0.55,
+     "count": 20
+    }
+   ]
+  },
+  "river_threshold": {
+   "all": [
+    {
+     "mean_prob": 0.0021,
+     "observed": 0.0035,
+     "count": 25485090
+    },
+    {
+     "mean_prob": 0.1166,
+     "observed": 0.1247,
+     "count": 12971
+    },
+    {
+     "mean_prob": 0.5282,
+     "observed": 0.0853,
+     "count": 3927
+    },
+    {
+     "mean_prob": 0.6671,
+     "observed": 0.1505,
+     "count": 24917
+    },
+    {
+     "mean_prob": 0.7408,
+     "observed": 0.2438,
+     "count": 40732
+    },
+    {
+     "mean_prob": 0.8473,
+     "observed": 0.2426,
+     "count": 58070
+    },
+    {
+     "mean_prob": 0.9414,
+     "observed": 0.4006,
+     "count": 29362
+    }
+   ],
+   "+1d": [
+    {
+     "mean_prob": 0.0021,
+     "observed": 0.0033,
+     "count": 5175636
+    },
+    {
+     "mean_prob": 0.1166,
+     "observed": 0.1402,
+     "count": 2774
+    },
+    {
+     "mean_prob": 0.5431,
+     "observed": 0.038,
+     "count": 1369
+    },
+    {
+     "mean_prob": 0.6654,
+     "observed": 0.1167,
+     "count": 4654
+    },
+    {
+     "mean_prob": 0.742,
+     "observed": 0.1863,
+     "count": 8320
+    },
+    {
+     "mean_prob": 0.8453,
+     "observed": 0.1942,
+     "count": 13414
+    },
+    {
+     "mean_prob": 0.9387,
+     "observed": 0.3208,
+     "count": 6770
+    }
+   ],
+   "+2d": [
+    {
+     "mean_prob": 0.0021,
+     "observed": 0.0036,
+     "count": 3386868
+    },
+    {
+     "mean_prob": 0.1165,
+     "observed": 0.1214,
+     "count": 1680
+    },
+    {
+     "mean_prob": 0.5199,
+     "observed": 0.1111,
+     "count": 423
+    },
+    {
+     "mean_prob": 0.6686,
+     "observed": 0.1654,
+     "count": 3222
+    },
+    {
+     "mean_prob": 0.7406,
+     "observed": 0.2709,
+     "count": 5171
+    },
+    {
+     "mean_prob": 0.8498,
+     "observed": 0.3063,
+     "count": 6285
+    },
+    {
+     "mean_prob": 0.9417,
+     "observed": 0.4732,
+     "count": 3373
+    }
+   ],
+   "+3d": [
+    {
+     "mean_prob": 0.0021,
+     "observed": 0.0036,
+     "count": 3384531
+    },
+    {
+     "mean_prob": 0.1165,
+     "observed": 0.1173,
+     "count": 1739
+    },
+    {
+     "mean_prob": 0.5198,
+     "observed": 0.1111,
+     "count": 423
+    },
+    {
+     "mean_prob": 0.6675,
+     "observed": 0.1593,
+     "count": 3359
+    },
+    {
+     "mean_prob": 0.7404,
+     "observed": 0.2598,
+     "count": 5374
+    },
+    {
+     "mean_prob": 0.8471,
+     "observed": 0.2428,
+     "count": 7825
+    },
+    {
+     "mean_prob": 0.9421,
+     "observed": 0.423,
+     "count": 3771
+    }
+   ],
+   "+4d": [
+    {
+     "mean_prob": 0.002,
+     "observed": 0.0036,
+     "count": 3382790
+    },
+    {
+     "mean_prob": 0.1165,
+     "observed": 0.1191,
+     "count": 1679
+    },
+    {
+     "mean_prob": 0.5201,
+     "observed": 0.1153,
+     "count": 425
+    },
+    {
+     "mean_prob": 0.6662,
+     "observed": 0.1509,
+     "count": 3604
+    },
+    {
+     "mean_prob": 0.7404,
+     "observed": 0.2426,
+     "count": 5783
+    },
+    {
+     "mean_prob": 0.8475,
+     "observed": 0.2275,
+     "count": 8382
+    },
+    {
+     "mean_prob": 0.9432,
+     "observed": 0.3659,
+     "count": 4359
+    }
+   ],
+   "+5d": [
+    {
+     "mean_prob": 0.002,
+     "observed": 0.0036,
+     "count": 3383908
+    },
+    {
+     "mean_prob": 0.1165,
+     "observed": 0.1199,
+     "count": 1668
+    },
+    {
+     "mean_prob": 0.5214,
+     "observed": 0.1093,
+     "count": 439
+    },
+    {
+     "mean_prob": 0.6671,
+     "observed": 0.1546,
+     "count": 3453
+    },
+    {
+     "mean_prob": 0.7406,
+     "observed": 0.2535,
+     "count": 5547
+    },
+    {
+     "mean_prob": 0.8472,
+     "observed": 0.2388,
+     "count": 8106
+    },
+    {
+     "mean_prob": 0.9424,
+     "observed": 0.4096,
+     "count": 3901
+    }
+   ],
+   "+6d": [
+    {
+     "mean_prob": 0.0021,
+     "observed": 0.0036,
+     "count": 3387068
+    },
+    {
+     "mean_prob": 0.1167,
+     "observed": 0.1257,
+     "count": 1686
+    },
+    {
+     "mean_prob": 0.5199,
+     "observed": 0.1064,
+     "count": 423
+    },
+    {
+     "mean_prob": 0.6687,
+     "observed": 0.1637,
+     "count": 3213
+    },
+    {
+     "mean_prob": 0.7404,
+     "observed": 0.2724,
+     "count": 5122
+    },
+    {
+     "mean_prob": 0.8494,
+     "observed": 0.3139,
+     "count": 6142
+    },
+    {
+     "mean_prob": 0.9413,
+     "observed": 0.4745,
+     "count": 3368
+    }
+   ],
+   "+7d": [
+    {
+     "mean_prob": 0.002,
+     "observed": 0.0036,
+     "count": 3384289
+    },
+    {
+     "mean_prob": 0.1166,
+     "observed": 0.1198,
+     "count": 1745
+    },
+    {
+     "mean_prob": 0.5201,
+     "observed": 0.1106,
+     "count": 425
+    },
+    {
+     "mean_prob": 0.6673,
+     "observed": 0.1571,
+     "count": 3412
+    },
+    {
+     "mean_prob": 0.7402,
+     "observed": 0.255,
+     "count": 5415
+    },
+    {
+     "mean_prob": 0.8472,
+     "observed": 0.2381,
+     "count": 7916
+    },
+    {
+     "mean_prob": 0.9424,
+     "observed": 0.4207,
+     "count": 3820
+    }
+   ]
+  },
+  "xgboost": {
+   "all": [
+    {
+     "mean_prob": 0.0107,
+     "observed": 0.0031,
+     "count": 23533689
+    },
+    {
+     "mean_prob": 0.1404,
+     "observed": 0.0044,
+     "count": 929713
+    },
+    {
+     "mean_prob": 0.2439,
+     "observed": 0.0087,
+     "count": 415834
+    },
+    {
+     "mean_prob": 0.3457,
+     "observed": 0.0137,
+     "count": 199864
+    },
+    {
+     "mean_prob": 0.4433,
+     "observed": 0.0238,
+     "count": 117216
+    },
+    {
+     "mean_prob": 0.5545,
+     "observed": 0.0263,
+     "count": 92763
+    },
+    {
+     "mean_prob": 0.65,
+     "observed": 0.0234,
+     "count": 123987
+    },
+    {
+     "mean_prob": 0.7469,
+     "observed": 0.0525,
+     "count": 78665
+    },
+    {
+     "mean_prob": 0.8516,
+     "observed": 0.0869,
+     "count": 80091
+    },
+    {
+     "mean_prob": 0.9513,
+     "observed": 0.3386,
+     "count": 83247
+    }
+   ],
+   "+1d": [
+    {
+     "mean_prob": 0.0087,
+     "observed": 0.0028,
+     "count": 4685653
+    },
+    {
+     "mean_prob": 0.1446,
+     "observed": 0.0036,
+     "count": 170518
+    },
+    {
+     "mean_prob": 0.243,
+     "observed": 0.0047,
+     "count": 97529
+    },
+    {
+     "mean_prob": 0.3491,
+     "observed": 0.012,
+     "count": 50349
+    },
+    {
+     "mean_prob": 0.443,
+     "observed": 0.02,
+     "count": 41572
+    },
+    {
+     "mean_prob": 0.5591,
+     "observed": 0.0157,
+     "count": 51714
+    },
+    {
+     "mean_prob": 0.6479,
+     "observed": 0.0106,
+     "count": 70210
+    },
+    {
+     "mean_prob": 0.735,
+     "observed": 0.0451,
+     "count": 23388
+    },
+    {
+     "mean_prob": 0.8501,
+     "observed": 0.1506,
+     "count": 7774
+    },
+    {
+     "mean_prob": 0.9575,
+     "observed": 0.3391,
+     "count": 14230
+    }
+   ],
+   "+2d": [
+    {
+     "mean_prob": 0.0126,
+     "observed": 0.0032,
+     "count": 3082719
+    },
+    {
+     "mean_prob": 0.1425,
+     "observed": 0.0022,
+     "count": 222077
+    },
+    {
+     "mean_prob": 0.2351,
+     "observed": 0.0045,
+     "count": 47957
+    },
+    {
+     "mean_prob": 0.3455,
+     "observed": 0.019,
+     "count": 14299
+    },
+    {
+     "mean_prob": 0.4418,
+     "observed": 0.0495,
+     "count": 8807
+    },
+    {
+     "mean_prob": 0.5488,
+     "observed": 0.0321,
+     "count": 4233
+    },
+    {
+     "mean_prob": 0.6488,
+     "observed": 0.0557,
+     "count": 3642
+    },
+    {
+     "mean_prob": 0.7618,
+     "observed": 0.1217,
+     "count": 4792
+    },
+    {
+     "mean_prob": 0.8505,
+     "observed": 0.152,
+     "count": 6528
+    },
+    {
+     "mean_prob": 0.9548,
+     "observed": 0.3898,
+     "count": 11968
+    }
+   ],
+   "+3d": [
+    {
+     "mean_prob": 0.0126,
+     "observed": 0.0031,
+     "count": 3099008
+    },
+    {
+     "mean_prob": 0.1401,
+     "observed": 0.0034,
+     "count": 141852
+    },
+    {
+     "mean_prob": 0.2469,
+     "observed": 0.0054,
+     "count": 84355
+    },
+    {
+     "mean_prob": 0.3359,
+     "observed": 0.0069,
+     "count": 32738
+    },
+    {
+     "mean_prob": 0.4429,
+     "observed": 0.0401,
+     "count": 9667
+    },
+    {
+     "mean_prob": 0.5508,
+     "observed": 0.0471,
+     "count": 5431
+    },
+    {
+     "mean_prob": 0.653,
+     "observed": 0.0488,
+     "count": 7790
+    },
+    {
+     "mean_prob": 0.7439,
+     "observed": 0.0566,
+     "count": 8398
+    },
+    {
+     "mean_prob": 0.8575,
+     "observed": 0.1317,
+     "count": 6189
+    },
+    {
+     "mean_prob": 0.9525,
+     "observed": 0.4014,
+     "count": 11594
+    }
+   ],
+   "+4d": [
+    {
+     "mean_prob": 0.0147,
+     "observed": 0.003,
+     "count": 3216319
+    },
+    {
+     "mean_prob": 0.1281,
+     "observed": 0.0076,
+     "count": 114470
+    },
+    {
+     "mean_prob": 0.2424,
+     "observed": 0.0208,
+     "count": 18581
+    },
+    {
+     "mean_prob": 0.3467,
+     "observed": 0.0376,
+     "count": 9607
+    },
+    {
+     "mean_prob": 0.4464,
+     "observed": 0.0263,
+     "count": 4897
+    },
+    {
+     "mean_prob": 0.5509,
+     "observed": 0.0335,
+     "count": 4061
+    },
+    {
+     "mean_prob": 0.6526,
+     "observed": 0.0669,
+     "count": 5379
+    },
+    {
+     "mean_prob": 0.7547,
+     "observed": 0.0536,
+     "count": 7741
+    },
+    {
+     "mean_prob": 0.8623,
+     "observed": 0.0888,
+     "count": 11533
+    },
+    {
+     "mean_prob": 0.9557,
+     "observed": 0.3118,
+     "count": 14434
+    }
+   ],
+   "+5d": [
+    {
+     "mean_prob": 0.0097,
+     "observed": 0.0031,
+     "count": 3037652
+    },
+    {
+     "mean_prob": 0.1446,
+     "observed": 0.0026,
+     "count": 139169
+    },
+    {
+     "mean_prob": 0.2468,
+     "observed": 0.0101,
+     "count": 84446
+    },
+    {
+     "mean_prob": 0.3495,
+     "observed": 0.0062,
+     "count": 64456
+    },
+    {
+     "mean_prob": 0.4399,
+     "observed": 0.0063,
+     "count": 34166
+    },
+    {
+     "mean_prob": 0.5457,
+     "observed": 0.0165,
+     "count": 10236
+    },
+    {
+     "mean_prob": 0.6454,
+     "observed": 0.024,
+     "count": 7831
+    },
+    {
+     "mean_prob": 0.7519,
+     "observed": 0.0862,
+     "count": 6592
+    },
+    {
+     "mean_prob": 0.8545,
+     "observed": 0.1502,
+     "count": 7702
+    },
+    {
+     "mean_prob": 0.9445,
+     "observed": 0.2926,
+     "count": 14772
+    }
+   ],
+   "+6d": [
+    {
+     "mean_prob": 0.0107,
+     "observed": 0.0034,
+     "count": 3119731
+    },
+    {
+     "mean_prob": 0.1455,
+     "observed": 0.0072,
+     "count": 79914
+    },
+    {
+     "mean_prob": 0.2438,
+     "observed": 0.0049,
+     "count": 69124
+    },
+    {
+     "mean_prob": 0.3412,
+     "observed": 0.0215,
+     "count": 20869
+    },
+    {
+     "mean_prob": 0.4473,
+     "observed": 0.0465,
+     "count": 11080
+    },
+    {
+     "mean_prob": 0.5508,
+     "observed": 0.0457,
+     "count": 11798
+    },
+    {
+     "mean_prob": 0.6565,
+     "observed": 0.023,
+     "count": 23888
+    },
+    {
+     "mean_prob": 0.7526,
+     "observed": 0.0256,
+     "count": 24250
+    },
+    {
+     "mean_prob": 0.8473,
+     "observed": 0.0279,
+     "count": 35383
+    },
+    {
+     "mean_prob": 0.9419,
+     "observed": 0.239,
+     "count": 10985
+    }
+   ],
+   "+7d": [
+    {
+     "mean_prob": 0.0071,
+     "observed": 0.0033,
+     "count": 3292607
+    },
+    {
+     "mean_prob": 0.1285,
+     "observed": 0.0114,
+     "count": 61713
+    },
+    {
+     "mean_prob": 0.2471,
+     "observed": 0.0647,
+     "count": 13842
+    },
+    {
+     "mean_prob": 0.3449,
+     "observed": 0.0565,
+     "count": 7546
+    },
+    {
+     "mean_prob": 0.4549,
+     "observed": 0.0393,
+     "count": 7027
+    },
+    {
+     "mean_prob": 0.5467,
+     "observed": 0.0733,
+     "count": 5290
+    },
+    {
+     "mean_prob": 0.6504,
+     "observed": 0.0913,
+     "count": 5247
+    },
+    {
+     "mean_prob": 0.7472,
+     "observed": 0.1182,
+     "count": 3504
+    },
+    {
+     "mean_prob": 0.8497,
+     "observed": 0.1632,
+     "count": 4982
+    },
+    {
+     "mean_prob": 0.9503,
+     "observed": 0.4922,
+     "count": 5264
+    }
+   ]
+  },
+  "unet_tt": {
+   "all": [
+    {
+     "mean_prob": 0.0039,
+     "observed": 0.0032,
+     "count": 25426032
+    },
+    {
+     "mean_prob": 0.1403,
+     "observed": 0.1466,
+     "count": 117642
+    },
+    {
+     "mean_prob": 0.2453,
+     "observed": 0.2158,
+     "count": 53365
+    },
+    {
+     "mean_prob": 0.3474,
+     "observed": 0.3281,
+     "count": 32714
+    },
+    {
+     "mean_prob": 0.4434,
+     "observed": 0.407,
+     "count": 20676
+    },
+    {
+     "mean_prob": 0.5297,
+     "observed": 0.5782,
+     "count": 4640
+    }
+   ],
+   "+1d": [
+    {
+     "mean_prob": 0.0027,
+     "observed": 0.0031,
+     "count": 5178786
+    },
+    {
+     "mean_prob": 0.142,
+     "observed": 0.1372,
+     "count": 17343
+    },
+    {
+     "mean_prob": 0.2448,
+     "observed": 0.2517,
+     "count": 8219
+    },
+    {
+     "mean_prob": 0.3461,
+     "observed": 0.4069,
+     "count": 4692
+    },
+    {
+     "mean_prob": 0.4446,
+     "observed": 0.3509,
+     "count": 3138
+    },
+    {
+     "mean_prob": 0.5246,
+     "observed": 0.61,
+     "count": 759
+    }
+   ],
+   "+2d": [
+    {
+     "mean_prob": 0.004,
+     "observed": 0.0031,
+     "count": 3377426
+    },
+    {
+     "mean_prob": 0.1404,
+     "observed": 0.1645,
+     "count": 15712
+    },
+    {
+     "mean_prob": 0.2461,
+     "observed": 0.2274,
+     "count": 7520
+    },
+    {
+     "mean_prob": 0.347,
+     "observed": 0.4051,
+     "count": 4416
+    },
+    {
+     "mean_prob": 0.4359,
+     "observed": 0.617,
+     "count": 1718
+    },
+    {
+     "mean_prob": 0.5206,
+     "observed": 0.6696,
+     "count": 230
+    }
+   ],
+   "+3d": [
+    {
+     "mean_prob": 0.004,
+     "observed": 0.0031,
+     "count": 3373832
+    },
+    {
+     "mean_prob": 0.1401,
+     "observed": 0.1525,
+     "count": 15943
+    },
+    {
+     "mean_prob": 0.2464,
+     "observed": 0.1978,
+     "count": 7604
+    },
+    {
+     "mean_prob": 0.3496,
+     "observed": 0.294,
+     "count": 5251
+    },
+    {
+     "mean_prob": 0.4418,
+     "observed": 0.3623,
+     "count": 3514
+    },
+    {
+     "mean_prob": 0.5288,
+     "observed": 0.6162,
+     "count": 878
+    }
+   ],
+   "+4d": [
+    {
+     "mean_prob": 0.0042,
+     "observed": 0.0031,
+     "count": 3372454
+    },
+    {
+     "mean_prob": 0.14,
+     "observed": 0.1516,
+     "count": 16509
+    },
+    {
+     "mean_prob": 0.2453,
+     "observed": 0.2173,
+     "count": 7420
+    },
+    {
+     "mean_prob": 0.3484,
+     "observed": 0.2919,
+     "count": 4977
+    },
+    {
+     "mean_prob": 0.4485,
+     "observed": 0.2655,
+     "count": 4116
+    },
+    {
+     "mean_prob": 0.5348,
+     "observed": 0.4825,
+     "count": 1546
+    }
+   ],
+   "+5d": [
+    {
+     "mean_prob": 0.0043,
+     "observed": 0.0031,
+     "count": 3373203
+    },
+    {
+     "mean_prob": 0.1398,
+     "observed": 0.1454,
+     "count": 17529
+    },
+    {
+     "mean_prob": 0.2452,
+     "observed": 0.2104,
+     "count": 7956
+    },
+    {
+     "mean_prob": 0.3461,
+     "observed": 0.3565,
+     "count": 4441
+    },
+    {
+     "mean_prob": 0.4422,
+     "observed": 0.3665,
+     "count": 3121
+    },
+    {
+     "mean_prob": 0.5354,
+     "observed": 0.5194,
+     "count": 772
+    }
+   ],
+   "+6d": [
+    {
+     "mean_prob": 0.0044,
+     "observed": 0.0033,
+     "count": 3377842
+    },
+    {
+     "mean_prob": 0.1392,
+     "observed": 0.1602,
+     "count": 16408
+    },
+    {
+     "mean_prob": 0.2444,
+     "observed": 0.2556,
+     "count": 6557
+    },
+    {
+     "mean_prob": 0.3476,
+     "observed": 0.2967,
+     "count": 3782
+    },
+    {
+     "mean_prob": 0.4422,
+     "observed": 0.5116,
+     "count": 2322
+    },
+    {
+     "mean_prob": 0.5068,
+     "observed": 0.8018,
+     "count": 111
+    }
+   ],
+   "+7d": [
+    {
+     "mean_prob": 0.0043,
+     "observed": 0.0033,
+     "count": 3372489
+    },
+    {
+     "mean_prob": 0.1406,
+     "observed": 0.1192,
+     "count": 18198
+    },
+    {
+     "mean_prob": 0.2448,
+     "observed": 0.1574,
+     "count": 8089
+    },
+    {
+     "mean_prob": 0.3465,
+     "observed": 0.2586,
+     "count": 5155
+    },
+    {
+     "mean_prob": 0.4433,
+     "observed": 0.5664,
+     "count": 2747
+    },
+    {
+     "mean_prob": 0.5219,
+     "observed": 0.8401,
+     "count": 344
+    }
+   ]
+  }
+ }
+}

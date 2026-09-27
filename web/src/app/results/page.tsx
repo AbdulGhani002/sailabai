@@ -28,10 +28,12 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [rel, setRel] = useState<Reliability | null>(null);
   const [relLead, setRelLead] = useState("all");
+  const [split, setSplit] = useState<"val" | "test">("val");
   useEffect(() => {
-    api.results().then(setRows).catch((e) => setError(String(e)));
-    api.reliability("val").then(setRel).catch(() => setRel(null));
-  }, []);
+    setRows(null);
+    api.results(split).then(setRows).catch((e) => setError(String(e)));
+    api.reliability(split).then(setRel).catch(() => setRel(null));
+  }, [split]);
 
   const forecast = useMemo(() => (rows ?? []).filter((r) => r.experiment.startsWith("model2") && !r.experiment.endsWith("-truth")), [rows]);
   const mapping = useMemo(() => (rows ?? []).filter((r) => r.experiment.startsWith("model1")), [rows]);
@@ -45,7 +47,6 @@ export default function ResultsPage() {
       points: leads.map((lead) => ({ lead, value: get(m.key, lead, metric, subset)?.skill ?? null })),
     }));
 
-  const split = forecast[0]?.split;
   const unetWins = leads.filter((l) => (get("unet_tt", l, "iou")?.skill ?? -1) > 0);
 
   if (error) return <main className="page"><h1>Results</h1><p className="lead">Could not load results: {error}</p></main>;
@@ -56,8 +57,16 @@ export default function ResultsPage() {
       <h1>Results</h1>
       <p className="lead">
         Every score sits next to its baseline, on floods the models never saw in training, split by event and averaged
-        per event. Normal water is removed before scoring. {split && <>Split shown: <strong>{split}</strong>.</>}
+        per event. Normal water is removed before scoring.
       </p>
+      <div className="segmented" role="group" aria-label="Which flood" style={{ marginBottom: 8 }}>
+        <button type="button" aria-pressed={split === "val"} onClick={() => setSplit("val")}>
+          Validation: 2023 Sutlej flood
+        </button>
+        <button type="button" aria-pressed={split === "test"} onClick={() => setSplit("test")}>
+          Test: 2025 record flood (scored once)
+        </button>
+      </div>
 
       {forecast.length === 0 ? (
         <p className="card">No forecast results yet. Run <code>sailab evaluate forecast</code>.</p>
@@ -133,7 +142,7 @@ export default function ResultsPage() {
               <div className="row" style={{ flexWrap: "wrap", gap: 12 }}>
                 <p className="ink2" style={{ margin: 0, flex: "1 1 280px" }}>
                   When a model says 30%, it should flood about 30% of the time: points on the dashed line are honest.
-                  Validation flood ({rel.split}); bins with fewer than 50 pixels are hidden.
+                  {rel.split === "test" ? "2025 test flood" : "2023 validation flood"}; bins with fewer than 50 pixels are hidden.
                 </p>
                 <div className="segmented" role="group" aria-label="Lead time">
                   {["all", ...LEADS.filter((l) => rel.models.unet_tt?.[l])].map((l) => (

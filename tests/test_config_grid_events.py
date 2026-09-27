@@ -60,13 +60,15 @@ def test_test_lock_is_one_shot_per_cube(tmp_path):
     lock = TestLock(tmp_path / "lock.json")
     lock.acquire("flood-2025", "exp-a", cube="synthetic:demo")
     with pytest.raises(TestAlreadyUsedError):
-        lock.acquire("flood-2025", "exp-b", cube="synthetic:demo")
+        lock.acquire("flood-2025", "exp-a", cube="synthetic:demo")  # same model, second look
+    rec = lock.acquire("flood-2025", "exp-b", cube="synthetic:demo")  # another model gets its own shot
+    assert rec["attempt"] == 1 and rec["touches_of_event"] == 2
     with pytest.raises(TestAlreadyUsedError):
-        lock.acquire("flood-2025", "exp-b", cube="synthetic:demo", force=True)  # no reason given
-    rec = lock.acquire("flood-2025", "exp-b", cube="synthetic:demo", force=True, reason="bug in scoring fixed")
+        lock.acquire("flood-2025", "exp-a", cube="synthetic:demo", force=True)  # no reason given
+    rec = lock.acquire("flood-2025", "exp-a", cube="synthetic:demo", force=True, reason="bug in scoring fixed")
     assert rec["attempt"] == 2
     lock.acquire("flood-2025", "exp-a", cube="real:real")  # a different cube has its own lock
-    assert len(lock.runs("flood-2025")) == 3
+    assert len(lock.runs("flood-2025")) == 4
 
 
 def test_versions():

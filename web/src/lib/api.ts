@@ -119,7 +119,7 @@ export const api = {
     getJSON<RoadRisk[]>(`/api/runs/${cube}/${date}/roads?horizon=${horizon}&limit=25`),
   hydrograph: (cube: string, gauge: string, date: string) =>
     getJSON<Hydrograph>(`/api/gauges/${gauge}/hydrograph?cube=${cube}&date=${date}`),
-  results: () => getJSON<ResultRow[]>(`/api/results`),
+  results: (split?: string) => getJSON<ResultRow[]>(`/api/results${split ? `?split=${split}` : ""}`),
   reliability: (split = "val") => getJSON<Reliability>(`/api/reliability?split=${split}`),
 };
 

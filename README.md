@@ -40,6 +40,26 @@ Chenab from Jhang (1 Sep) to Shujabad and Jalalpur Pirwala (6 Sep):
 
 ![real GFM flood maps, 1 and 6 Sep 2025](docs/img/real-gfm-2025.png)
 
+## Results so far (synthetic demo world)
+
+These scores show the pipeline works end to end; they say nothing yet about real-world skill. Full
+tables: [results/RESULTS.md](results/RESULTS.md); every row sits next to its baseline.
+
+| Model | 2023 validation flood | 2025 test flood (scored once) |
+|---|---|---|
+| Model 1 U-Net, F1 vs GFM / vs truth labels | 0.82 / 0.75 (Otsu 0.52 / 0.51) | 0.95 / 0.85 (Otsu 0.87 / 0.80) |
+| Model 2 UNet-TT, Brier score (lower is better) | 0.0041-0.0047, best at all 7 lead times (persistence 0.0076-0.0084) | 0.029-0.041, worse than persistence (0.016-0.029) |
+| Model 2 UNet-TT, calibration error | 0.0006-0.0015, best of all models | 0.025-0.046: over-confident |
+
+**The honest reading.** On the validation flood, Model 2 gives the best and best-calibrated
+probabilities, and beats "repeat the last map" at every lead time; the historical-frequency
+baseline still has the best overlap scores. On the 2025 record flood, persistence wins at every lead
+(overlap 0.52 at +1 day): Model 2 was trained only on smaller floods, pushes flooding into areas the
+embankments protect, and misses water that lingered for weeks behind breaches. That is the main risk
+the team guide names, caught by the one-shot test. It points straight at the next research step:
+physics-guided forecasts that extrapolate to record floods, and a flag where inputs go beyond anything
+seen in training.
+
 ## Quick start (Windows, laptop with an NVIDIA GPU)
 
 ```powershell
