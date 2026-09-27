@@ -30,6 +30,7 @@ from sailab.forecast.inputs import STANDARD_HORIZONS, SeriesBank, StateComposer,
 from sailab.io import write_raster
 from sailab.paths import runs_dir, twin_dir
 from sailab.risk.exposure import exposure_summary
+from sailab.risk.unobservable import UnobservableFill
 
 
 @dataclass
@@ -62,6 +63,7 @@ class Twin:
         points = self.ensemble.points if self.ensemble else (self.level.points if self.level else [])
         self.series = SeriesBank(self.cube, points) if points else None
         self.static = StaticMaps(self.cube, points or None)
+        self.fill = UnobservableFill.from_cube(self.cube)  # towns and sand: radar cannot see floods there
         self.mapped: dict[str, str] = {}
 
     # ------------------------------------------------------------------ models
@@ -140,6 +142,9 @@ class Twin:
                      tags={"layer": "current flood map", "issue_time": t.isoformat()})
 
         probs, members, model_name = self._forecast(state, t, [lv for _, lv in leads])
+        probs = self.fill.apply(probs)
+        if members is not None:
+            members = self.fill.apply(members)
         layers = {"population": self.cube.static("population"), "buildings": self.cube.static("buildings"),
                   "road_km": self.cube.static("road_km")}
         roads, places = self.cube.geojson("roads"), self.cube.geojson("places")
@@ -169,6 +174,7 @@ class Twin:
             })
 
         now_map = (state.flooded & state.known).astype(np.float32) if state is not None else np.zeros(grid.shape, np.float32)
+        now_map = self.fill.apply(now_map)  # estimate towns from the flooding around them
         # today's map is an observation, not a forecast: counts without a forecast range
         exact = Calibration(total_quantiles={m: (0.0, 0.0) for m in (*layers, "area_km2")})
         now_exposure = exposure_summary(now_map, None, layers, grid, exact, roads, places, self.static.aoi)

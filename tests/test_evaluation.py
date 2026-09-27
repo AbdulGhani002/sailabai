@@ -89,7 +89,7 @@ def test_results_table_requires_baseline(tmp_path):
     rows = table.append(model, base, experiment="x", model="m", baseline="persistence", split="val")
     assert rows.iloc[0]["skill"] == pytest.approx(0.2)
     text = table.render_markdown()
-    assert "x: m vs persistence" in text
+    assert "x (val): m vs persistence" in text
     assert "0.600 / 0.500 / 0.200" in text
     merged = compare_to_baseline(model, base)
     assert merged["skill"].iloc[0] == pytest.approx(0.2)

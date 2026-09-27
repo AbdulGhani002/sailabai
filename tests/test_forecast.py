@@ -162,3 +162,16 @@ def test_confidence_zones():
     fitted = fitter.fit(["val"])
     caught = (fitted.zones(p)[y] > 0).mean()   # likely or possible
     assert caught >= 0.78                       # the zone keeps its 80% coverage promise
+
+
+def test_unobservable_pixels_borrow_nearby_forecasts(tiny_cube):
+    from sailab.risk.unobservable import UnobservableFill
+
+    fill = UnobservableFill.from_cube(tiny_cube)
+    prob = np.full(tiny_cube.grid.shape, 0.9, np.float32)   # noise the model could emit anywhere
+    prob[~fill.excluded] = 0.02                             # the observable land says 2%
+    out = fill.apply(prob)
+    assert np.allclose(out[~fill.excluded], 0.02)          # observable pixels untouched
+    assert out[fill.excluded].max() <= 0.02 + 1e-6         # no 90% noise survives in towns or sand
+    stacked = fill.apply(np.stack([prob, prob]))
+    assert stacked.shape == (2, *prob.shape) and np.allclose(stacked[1], out)
