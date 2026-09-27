@@ -16,7 +16,7 @@ from rasterio.enums import Resampling
 
 from sailab.config import BBox, load_aoi
 from sailab.cube import Datacube
-from sailab.sources.raster_remote import mosaic_to_grid
+from sailab.sources.raster_remote import mosaic_to_grid, valid_share
 
 DEM_URL = ("https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{ns}{lat:02d}_00_{ew}{lon:03d}_00_DEM/"
            "Copernicus_DSM_COG_10_{ns}{lat:02d}_00_{ew}{lon:03d}_00_DEM.tif")
@@ -62,22 +62,51 @@ def slope_degrees(dem: np.ndarray, res: float) -> np.ndarray:
     return np.degrees(np.arctan(np.hypot(gx, gy))).astype(np.float32)
 
 
-def ingest_static(cube: Datacube, bbox: BBox | None = None, log=print) -> None:
+def ingest_static(cube: Datacube, bbox: BBox | None = None, force: bool = False, log=print) -> dict[str, float]:
+    """Fetch every static layer onto the cube's grid. Layers already present with good coverage are
+    kept unless force=True, so a run interrupted by the network can simply be repeated."""
     bbox = bbox or load_aoi().effective_bbox
     grid = cube.grid
+    inside = grid.aoi_mask(bbox)
+    coverage: dict[str, float] = {}
+
+    def good(name: str) -> bool:
+        if force or not cube.has_static(name):
+            return False
+        arr = cube.static(name)
+        return valid_share(arr[inside] if arr.shape == inside.shape else arr) > 0.9
+
+    def check(name: str, arr: np.ndarray, fill: float | int | None = None) -> None:
+        share = valid_share(arr[inside], fill)
+        coverage[name] = round(share, 3)
+        if share < 0.9:
+            log(f"WARNING: {name} covers only {share:.0%} of the study area; re-run `sailab data static`")
+
     avg = Resampling.average
-    log("DEM (Copernicus GLO-30)...")
-    dem = mosaic_to_grid(dem_urls(bbox), grid, avg, log=log)
-    cube.write_static("dem", dem, source="Copernicus DEM GLO-30")
-    cube.write_static("slope", slope_degrees(dem, grid.res))
-    log("HAND (ASF GLO-30 HAND)...")
-    cube.write_static("hand", mosaic_to_grid(hand_urls(bbox), grid, avg, log=log), source="ASF GLO-30 HAND v1")
-    log("surface water occurrence (JRC GSW)...")
-    occ = mosaic_to_grid(gsw_urls(bbox), grid, avg, log=log)
-    cube.write_static("water_occurrence", occ, source="JRC GSW occurrence v1.4")
-    cube.write_static("normal_water", (np.nan_to_num(occ) >= NORMAL_WATER_OCCURRENCE).astype(np.uint8), dtype="uint8")
-    log("land cover (ESA WorldCover 2021)...")
-    lc = mosaic_to_grid(worldcover_urls(bbox), grid, Resampling.mode, dtype="uint8", nodata=0, log=log)
-    cube.write_static("landcover", lc, dtype="uint8", source="ESA WorldCover 2021 v200")
-    cube.write_static("aoi_mask", grid.aoi_mask(bbox).astype(np.uint8), dtype="uint8")
-    log("static layers written")
+    if not good("dem"):
+        log("DEM (Copernicus GLO-30)...")
+        dem = mosaic_to_grid(dem_urls(bbox), grid, avg, log=log)
+        check("dem", dem)
+        cube.write_static("dem", dem, source="Copernicus DEM GLO-30")
+        cube.write_static("slope", slope_degrees(dem, grid.res))
+    if not good("hand"):
+        log("HAND (ASF GLO-30 HAND)...")
+        hand = mosaic_to_grid(hand_urls(bbox), grid, avg, log=log)
+        check("hand", hand)
+        cube.write_static("hand", hand, source="ASF GLO-30 HAND v1")
+    if not good("water_occurrence"):
+        log("surface water occurrence (JRC GSW; tiles have no overviews, so this read is the largest)...")
+        occ = mosaic_to_grid(gsw_urls(bbox), grid, avg, log=log)
+        check("water_occurrence", occ)
+        cube.write_static("water_occurrence", occ, source="JRC GSW occurrence v1.4")
+        cube.write_static("normal_water", (np.nan_to_num(occ) >= NORMAL_WATER_OCCURRENCE).astype(np.uint8), dtype="uint8")
+    if not good("landcover"):
+        log("land cover (ESA WorldCover 2021)...")
+        lc = mosaic_to_grid(worldcover_urls(bbox), grid, Resampling.mode, dtype="uint8", nodata=0, log=log)
+        check("landcover", lc, fill=0)
+        cube.write_static("landcover", lc, dtype="uint8", source="ESA WorldCover 2021 v200")
+        cube.write_static("exclusion", np.isin(lc, (50, 60)).astype(np.uint8), dtype="uint8",
+                          source="WorldCover bare (60) and built-up (50), as in GFM's exclusion mask")
+    cube.write_static("aoi_mask", inside.astype(np.uint8), dtype="uint8")
+    log(f"static layers written; coverage of the study area: {coverage or 'unchanged'}")
+    return coverage

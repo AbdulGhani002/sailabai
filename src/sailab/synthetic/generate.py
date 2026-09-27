@@ -68,6 +68,7 @@ def generate_synthetic_cube(name: str = "demo", resolution_m: float | None = Non
         ("population", terrain.population, {}), ("buildings", terrain.buildings, {}),
         ("road_km", terrain.road_km, {}), ("aoi_mask", aoi_mask.astype(np.uint8), {"dtype": "uint8"}),
         ("beyond_bund", terrain.beyond_bund.astype(np.uint8), {"dtype": "uint8"}),
+        ("exclusion", np.isin(terrain.landcover, (50, 60)).astype(np.uint8), {"dtype": "uint8"}),
     ]:
         cube.write_static(layer, arr, **kw)
     cube.write_geojson("roads", terrain.roads)

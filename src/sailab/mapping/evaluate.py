@@ -26,7 +26,9 @@ def evaluate_mapping(cube: Datacube, split: str, model_path: Path | None, max_sc
         scenes = scenes.iloc[np.linspace(0, len(scenes) - 1, max_scenes).astype(int)]
     normal = cube.static("normal_water").astype(bool)
     hand = cube.static("hand")
-    aoi = cube.static("aoi_mask").astype(bool) if cube.has_static("aoi_mask") else None
+    aoi = cube.static("aoi_mask").astype(bool) if cube.has_static("aoi_mask") else np.ones(cube.grid.shape, bool)
+    excluded = cube.exclusion()
+    scored = aoi & ~excluded  # radar cannot judge sand and towns; GFM leaves them out too
     refs = ["gfm"] + (["truth"] if cube.has_truth(scenes.iloc[0]["scene_id"]) else [])
     scorers = {r: {"otsu": EventScorer()} for r in refs}
     unet = None
@@ -47,14 +49,14 @@ def evaluate_mapping(cube: Datacube, split: str, model_path: Path | None, max_sc
         pre_key = s.get("pre_key")
         pre = cube.read_pre_sar(pre_key) if isinstance(pre_key, str) and (cube.root / "s1_pre" / f"{pre_key}.tif").exists() else None
         otsu = otsu_flood_map(sar, normal, hand, pre)
-        preds = {"otsu": otsu.flood_prob}
+        preds = {"otsu": np.where(excluded, 0.0, otsu.flood_prob)}
         if unet is not None:
             _, prob = map_scene(unet, cube, sid, dev, terrain)
             preds["unet"] = prob
         for ref in refs:
             label = cube.read_label(sid, truth=(ref == "truth"))
             for name, prob in preds.items():
-                scorers[ref][name].add(s["event_id"], prob, label, normal_water=normal, extra_valid=aoi)
+                scorers[ref][name].add(s["event_id"], prob, label, normal_water=normal, extra_valid=scored)
     return scorers
 
 

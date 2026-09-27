@@ -166,6 +166,10 @@ class Twin:
                            **({"spread": f"spread_{name}.tif"} if mem is not None else {})},
             })
 
+        now_map = (state.flooded & state.known).astype(np.float32) if state is not None else np.zeros(grid.shape, np.float32)
+        # today's map is an observation, not a forecast: counts without a forecast range
+        exact = Calibration(total_quantiles={m: (0.0, 0.0) for m in (*layers, "area_km2")})
+        now_exposure = exposure_summary(now_map, None, layers, grid, exact, roads, places, self.static.aoi)
         latest = self.composer.scenes_before(t)
         summary = {
             "run_id": t.strftime("%Y-%m-%d"),
@@ -181,6 +185,7 @@ class Twin:
                 "mapped_by": self.mapped.get(latest.iloc[-1]["scene_id"], "gfm")},
             "new_passes": new_passes,
             "current_flooded_km2": round(float(state.flooded[self.static.aoi].sum() * grid.pixel_area_km2), 1) if state else 0.0,
+            "current_exposure": {"totals": now_exposure["totals"], "places": now_exposure["places"][:10]},
             "horizons": horizon_rows,
             "layers": {"current": "current.tif"},
         }

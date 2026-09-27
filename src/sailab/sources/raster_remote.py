@@ -7,6 +7,7 @@ much coarser than the source, a matching overview level is read instead of full 
 from __future__ import annotations
 
 import math
+import time
 from collections.abc import Iterable
 
 import numpy as np
@@ -24,6 +25,8 @@ GDAL_ENV = {
     "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif,.tiff",
     "GDAL_HTTP_MAX_RETRY": "4",
     "GDAL_HTTP_RETRY_DELAY": "2",
+    "GDAL_HTTP_TIMEOUT": "180",
+    "GDAL_HTTP_CONNECTTIMEOUT": "30",
 }
 
 
@@ -70,20 +73,33 @@ def read_to_grid(href: str, grid: GridSpec, resampling: Resampling = Resampling.
 
 
 def mosaic_to_grid(hrefs: Iterable[str], grid: GridSpec, resampling: Resampling = Resampling.nearest,
-                   dtype: str = "float32", nodata: float | int | None = None, log=None) -> np.ndarray:
-    """First-valid-wins mosaic of several remote tiles on `grid`."""
+                   dtype: str = "float32", nodata: float | int | None = None, log=None,
+                   attempts: int = 3) -> np.ndarray:
+    """First-valid-wins mosaic of several remote tiles on `grid`. Each tile is retried a few times
+    (slow or flaky connections time out); a tile that still fails is reported and skipped."""
     fill = np.nan if (nodata is None and dtype.startswith("float")) else (nodata if nodata is not None else 0)
     out = np.full(grid.shape, fill, dtype=dtype)
     have = np.zeros(grid.shape, dtype=bool)
     for href in hrefs:
-        try:
-            part = read_to_grid(href, grid, resampling, dtype=dtype, nodata=nodata)
-        except rasterio.errors.RasterioIOError as e:
-            if log:
-                log(f"  skipped {href}: {e}")
+        part = None
+        for attempt in range(1, attempts + 1):
+            try:
+                part = read_to_grid(href, grid, resampling, dtype=dtype, nodata=nodata)
+                break
+            except Exception as e:  # GDAL raises several error types for network trouble
+                if log:
+                    log(f"  attempt {attempt}/{attempts} failed for {href.rsplit('/', 1)[-1]}: {e}")
+                time.sleep(3 * attempt)
+        if part is None:
             continue
         ok = ~np.isnan(part) if dtype.startswith("float") else part != fill
         take = ok & ~have
         out[take] = part[take]
         have |= ok
     return out
+
+
+def valid_share(arr: np.ndarray, fill: float | int | None = None) -> float:
+    if arr.dtype.kind == "f":
+        return float(np.isfinite(arr).mean())
+    return float((arr != (fill if fill is not None else 0)).mean())

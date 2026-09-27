@@ -107,6 +107,16 @@ class Datacube:
     def static(self, name: str, window: Window | None = None) -> np.ndarray:
         return read_raster(self.static_path(name), window=window)[0]
 
+    def exclusion(self) -> np.ndarray:
+        """Pixels radar flood mapping cannot judge (GFM excludes them too): bare sand, which is as
+        dark as water, and built-up areas, where flood water shows as bright double bounce.
+        Built from WorldCover classes 60 (bare) and 50 (built-up) the first time it is needed."""
+        if not self.has_static("exclusion"):
+            lc = self.static("landcover")
+            self.write_static("exclusion", np.isin(lc, (50, 60)).astype(np.uint8), dtype="uint8",
+                              source="WorldCover bare (60) and built-up (50)")
+        return self.static("exclusion").astype(bool)
+
     @cached_property
     def static_names(self) -> list[str]:
         return sorted(p.stem for p in (self.root / "static").glob("*.tif"))

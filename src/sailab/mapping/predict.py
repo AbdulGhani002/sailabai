@@ -52,7 +52,7 @@ def map_scene(model: ResNetUNet, cube: Datacube, scene_id: str, dev: torch.devic
     x = scene_inputs(cube, scene_id, terrain)
     probs = predict_probs(model, x, dev)
     sar = cube.read_sar(scene_id)
-    valid = np.isfinite(sar[0])
+    valid = np.isfinite(sar[0]) & ~cube.exclusion()  # sand and towns: "unknown", as in GFM
     normal = cube.static("normal_water").astype(bool)
     flood_prob = np.where(valid & ~normal, probs[L.FLOOD], 0.0).astype(np.float32)
     return probs_to_label(probs, normal, valid), flood_prob

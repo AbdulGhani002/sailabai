@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from scipy import ndimage
 from skimage.filters import threshold_otsu
 
 from sailab import labels as L
@@ -23,6 +24,13 @@ class OtsuResult:
     flood_prob: np.ndarray   # soft score in [0, 1], for scoring alongside the models
     threshold_db: float
     tiles_used: int
+
+
+def despeckle(db: np.ndarray, size: int = 3) -> np.ndarray:
+    """Median filter in dB (NaN-safe): radar speckle makes single land pixels look like water."""
+    filled = np.where(np.isfinite(db), db, np.nanmedian(db) if np.isfinite(db).any() else 0.0)
+    out = ndimage.median_filter(filled, size=size)
+    return np.where(np.isfinite(db), out, np.nan)
 
 
 def ashman_d(values: np.ndarray, threshold: float) -> float:
@@ -69,14 +77,14 @@ def otsu_flood_map(post_db: np.ndarray, normal_water: np.ndarray, hand: np.ndarr
                    pre_db: np.ndarray | None = None, max_hand_m: float = 15.0, change_db: float = -3.0,
                    tile: int = 32) -> OtsuResult:
     """Label map (land / normal water / flood / ignore) from one radar image."""
-    vv = post_db[0]
-    valid = np.isfinite(vv)
+    valid = np.isfinite(post_db[0])
+    vv = despeckle(post_db[0])
     threshold, used = split_based_threshold(vv, tile=tile)
     water = valid & (vv < threshold)
     if hand is not None:
         water &= hand <= max_hand_m
     if pre_db is not None and np.isfinite(pre_db[0]).any():
-        pre_vv = pre_db[0]
+        pre_vv = despeckle(pre_db[0])
         was_dark = np.isfinite(pre_vv) & (pre_vv < threshold)
         # always-dark surfaces (sand, tarmac) are not new water unless they got darker still
         water &= ~was_dark | ((vv - pre_vv) < change_db)

@@ -331,12 +331,12 @@ def data_init(name: str = "real", resolution: float = typer.Option(None, help="m
 
 
 @data_app.command("static")
-def data_static(cube: str = "real") -> None:
-    """DEM, HAND, slope, JRC water, WorldCover onto the cube's grid (no account)."""
+def data_static(cube: str = "real", force: bool = False) -> None:
+    """DEM, HAND, slope, JRC water, WorldCover onto the cube's grid (no account). Re-run to fill gaps."""
     from sailab.cube import Datacube
     from sailab.sources.static_layers import ingest_static
 
-    ingest_static(Datacube.open(cube), log=log)
+    ingest_static(Datacube.open(cube), force=force, log=log)
 
 
 @data_app.command("gfm")
@@ -374,6 +374,71 @@ def data_ffd_parse(cube: str = "real", folder: Path = typer.Option(None, help="a
         df = pd.concat([old[old["source"] != "ffd"], df], ignore_index=True)
     c.write_table("series", "discharge", df)
     log(f"{len(df):,} gauge readings from {df['date'].nunique() if len(df) else 0} bulletin days")
+
+
+def _merge_table(cube, group: str, name: str, new, keys: list[str]) -> int:
+    import pandas as pd
+
+    if cube.has_table(group, name):
+        old = cube.table(group, name)
+        new = pd.concat([old, new], ignore_index=True).drop_duplicates(keys, keep="last")
+    cube.write_table(group, name, new)
+    return len(new)
+
+
+@data_app.command("glofas-forecast")
+def data_glofas_forecast(day: str, cube: str = "real") -> None:
+    """GloFAS 51-member forecast issued on DAY at the model points (EWDS account, ~/.cdsapirc)."""
+    import pandas as pd
+    import xarray as xr
+
+    from sailab.config import load_gauges
+    from sailab.cube import Datacube
+    from sailab.paths import archive_dir
+    from sailab.sources import glofas
+
+    c = Datacube.open(cube)
+    gauges = load_gauges()
+    points = [g for g in gauges.all() if g.id in gauges.model_input_ids(include_india=True)]
+    d = pd.Timestamp(day)
+    nc = glofas.request_forecast(d, points, archive_dir() / "glofas" / f"forecast_{d:%Y%m%d}.nc")
+    ds = xr.open_dataset(nc)
+    var = next(v for v in ds.data_vars if v.startswith("dis"))
+    mean = ds[var].mean([dim for dim in ds[var].dims if dim not in ("latitude", "longitude", "lat", "lon")])
+    snapped = glofas.snap_points(mean, points)
+    for sp in snapped:
+        log(f"  {sp.point_id}: moved {sp.moved_km} km to the river cell ({sp.mean_flow_cusecs:,.0f} cusecs)")
+    rows = _merge_table(c, "forecasts", "glofas", glofas.forecast_table(nc, d, snapped),
+                        ["issue_date", "point_id", "lead_day", "member"])
+    log(f"forecasts/glofas.parquet: {rows:,} rows")
+
+
+@data_app.command("imerg")
+def data_imerg(start: str, end: str, cube: str = "real", run: str = "late") -> None:
+    """IMERG daily rain (NASA Earthdata account) into the cube's weather table."""
+    from sailab.cube import Datacube
+    from sailab.paths import archive_dir
+    from sailab.sources import imerg
+
+    c = Datacube.open(cube)
+    files = imerg.download(start, end, archive_dir() / "imerg", run=run)
+    table = imerg.weather_table(files)
+    rows = _merge_table(c, "series", "weather", table.drop(columns=["source", "version"]), ["date"])
+    log(f"series/weather.parquet: {rows:,} days ({len(files)} files, IMERG {run} V07)")
+
+
+@data_app.command("s1-search")
+def data_s1_search(start: str, end: str, cube: str = "real") -> None:
+    """List Sentinel-1 GRD granules over the study area and match them to the cube's GFM passes."""
+    from sailab.config import load_aoi
+    from sailab.cube import Datacube
+    from sailab.sources import sentinel1
+
+    c = Datacube.open(cube)
+    found = sentinel1.search(start, end, load_aoi().effective_bbox.as_tuple())
+    matched = sentinel1.match_to_scenes(found, c.scenes) if len(c.scenes) else found
+    console.print(matched.to_string(max_rows=60))
+    log(f"{len(found)} granules, {len(matched)} matched to labelled passes; submit with HyP3 (docs/data.md)")
 
 
 archive_app = typer.Typer(help="Daily scrapers for sources that delete files within days.", no_args_is_help=True)
@@ -420,6 +485,35 @@ def api_serve(host: str = "127.0.0.1", port: int = 8000, reload: bool = False, c
 
 
 # --------------------------------------------------------------------------- tools
+
+labels_app = typer.Typer(help="Hand-checked test tiles (the second mapping reference).", no_args_is_help=True)
+app.add_typer(labels_app, name="labels")
+
+
+@labels_app.command("export")
+def labels_export(cube: str = "real", split: str = "test", n: int = 40, size: int = 64, seed: int = 0) -> None:
+    """Pick stratified tiles and export radar + GFM label for correction in QGIS."""
+    from sailab.cube import Datacube
+    from sailab.labeling import export_tiles, pick_tiles
+    from sailab.paths import data_dir
+
+    c = Datacube.open(cube)
+    tiles = pick_tiles(c, split, n, size, seed)
+    out = export_tiles(c, tiles, data_dir() / "handlabels" / c.root.name)
+    log(f"{len(tiles)} tiles ({tiles['stratum'].value_counts().to_dict()}) -> {out} (see LABELLING.md)")
+
+
+@labels_app.command("import")
+def labels_import(cube: str = "real") -> None:
+    """Load corrected tiles into the cube's truth labels."""
+    from sailab.cube import Datacube
+    from sailab.labeling import import_tiles
+    from sailab.paths import data_dir
+
+    c = Datacube.open(cube)
+    n = import_tiles(c, data_dir() / "handlabels" / c.root.name)
+    log(f"imported {n} hand-labelled tiles into {c.root / 'truth'}")
+
 
 export_app = typer.Typer(help="Export data for other tools.", no_args_is_help=True)
 app.add_typer(export_app, name="export")

@@ -126,7 +126,7 @@ class GridSpec:
     def coarsen(self, factor: int) -> GridSpec:
         return GridSpec(
             crs=self.crs,
-            transform=self.transform * Affine.scale(factor),
+            transform=self.transform @ Affine.scale(factor),
             width=math.ceil(self.width / factor),
             height=math.ceil(self.height / factor),
         )
@@ -145,7 +145,7 @@ class GridSpec:
                 yield Window(col, row, w, h)
 
     def window_transform(self, window: Window) -> Affine:
-        return self.transform * Affine.translation(window.col_off, window.row_off)
+        return self.transform @ Affine.translation(window.col_off, window.row_off)
 
     def profile(self, dtype: str = "float32", count: int = 1, nodata: float | int | None = None,
                 window: Window | None = None) -> dict[str, Any]:
