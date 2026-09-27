@@ -11,6 +11,7 @@ import { compact, horizonLabel, longDate, pct, pkTime, whole } from "@/lib/forma
 import { useTheme } from "@/lib/theme";
 
 type View = "prob" | "sets" | "spread";
+const TILE_STYLE = 2;
 const VIEWS: { id: View; label: string; hint: string }[] = [
   { id: "prob", label: "Chance", hint: "Calibrated chance of flooding at each pixel" },
   { id: "sets", label: "Confidence", hint: "Likely (50%+) and possible: the possible zone caught 80% of real flooding on the validation flood" },
@@ -82,7 +83,8 @@ export default function Dashboard() {
 
   const layer = horizon === "now" ? "current" : `${h?.tiles[view] ? view : "prob"}_${horizon}`;
   const tileUrl = !run ? null : horizon === "now" ? run.tiles.current : (h?.tiles[view] ?? h?.tiles.prob ?? null);
-  const themedTiles = tileUrl ? `${tileUrl}?theme=${theme}` : null;
+  // bump TILE_STYLE when colour ramps change, so browsers do not keep old tiles from their cache
+  const themedTiles = tileUrl ? `${tileUrl}?theme=${theme}&style=${TILE_STYLE}` : null;
   const runIndex = runs.findIndex((r) => r.run_date === runDate);
 
   if (error) {

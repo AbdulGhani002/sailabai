@@ -82,8 +82,16 @@ export function FloodMap({ meta, tileUrl, theme, selectedGauge, onGaugeSelect }:
     });
     map.on("mouseenter", "gauges", () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", "gauges", () => (map.getCanvas().style.cursor = ""));
-    // the panel below the map loads later and shrinks it; keep the canvas matched to its container
-    const resizer = new ResizeObserver(() => map.resize());
+    // the panel below the map loads later and shrinks it; keep the canvas matched to its container,
+    // and keep the whole study area in view until the user pans or zooms themselves
+    let userMoved = false;
+    map.on("movestart", (ev) => {
+      if ((ev as { originalEvent?: unknown }).originalEvent) userMoved = true;
+    });
+    const resizer = new ResizeObserver(() => {
+      map.resize();
+      if (!userMoved) map.fitBounds([[w, s], [e, n]], { padding: 24, animate: false });
+    });
     resizer.observe(container.current);
     mapRef.current = map;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __sailabMap?: MLMap }).__sailabMap = map;
