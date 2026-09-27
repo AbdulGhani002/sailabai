@@ -39,9 +39,15 @@ the same satellite path, DEM, HAND and slope.
 Job: the chance of flooding (0-100%) at every pixel for the next satellite pass and +1, +2, +3, +5
 and +7 days.
 
-- **Map part.** A ResNet U-Net reads 9 channels: the latest flood state per pixel, whether it was
+- **Map part.** A ResNet U-Net reads 13 channels: the latest flood state per pixel, whether it was
   observed, how old that observation is, normal water, HAND, DEM, slope, a breach-scenario channel
-  (1 within 12 km of an open breach), and a "map hidden" flag.
+  (1 within 12 km of an open breach), a "map hidden" flag, and **river flow brought to each pixel**:
+  the flow of the gauge that controls it today, the GloFAS forecast flow at the lead time, the
+  forecast peak up to then, and a "forecast missing" flag. Which gauge controls a pixel is fitted on
+  the training events only (the one whose flow best explains the pixel's flooding) and cached as
+  `static/ref_point.tif`. Without these channels the network had to work out from a 128 px chip
+  which of six global flow series mattered where; with them it can learn "this ground floods when
+  that river passes this level", like the historical-frequency baseline does per pixel.
 - **Time part.** A 4-layer transformer (d = 128, 4 heads, 0.82 M parameters) reads 37 day tokens:
   30 days of observed flow at the six points (Marala, Qadirabad, Trimmu, Sidhnai, Islam, Panjnad),
   upper-catchment rain, local rain and soil moisture, then 7 days of GloFAS and ECMWF forecasts.
@@ -55,6 +61,12 @@ and +7 days.
 - **Labels.** GFM flood maps at the real target pass; the loss counts only labelled, non-normal-water
   pixels. Model selection uses the validation Brier score.
 - **Not our job:** our own river-flow model. GloFAS forecasts are the river inputs.
+- **ConvLSTM comparison** (`nn/unet_clstm.py`, phase 3): the same U-Net and inputs with a ConvLSTM over
+  the day tokens instead of the transformer, so the comparison isolates the temporal model:
+  `sailab train forecast --arch unet_clstm --out-dir runs/model2_clstm`, then
+  `sailab evaluate forecast --model-dir runs/model2_clstm --experiment model2-clstm`. The other
+  planned comparisons are flags: `--map-dropout` (dropout rates) and `--include-india` / point
+  dropout (no upstream data).
 
 ## Baselines Model 2 must beat (`forecast/baselines.py`, `forecast/xgb.py`)
 
